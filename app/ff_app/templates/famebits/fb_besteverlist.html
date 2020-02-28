@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ss}} BestEver - FameBits{% endblock %}
+{% block mdesc %}Best time to own {{ss}} stock. List of best timing on different terms.{% endblock %}
+{% block ogtitle %}{{ss}} BestEver - distilled knowledge from data{% endblock %}
+{% block ogdesc %}Best time to own {{ss}} stock{% endblock %}
+{% block ogimage %}https://storage.googleapis.com/iex/api/logos/{{ss}}.png{% endblock %}
+
+{% block header %}
+<script>
+    {% if ss %}
+    $(document).ready(function(){
+        $.getJSON('/api/v1/famebits/bel/{{ss}}/', function(d) {
+            var a = ''
+            for (i in d.bits) {
+                var t = '';
+                t = t + '<td class="align-middle nw">' + d.bits[i].range + '</td>';
+                t = t + '<td class="align-middle"><a class="btn btn-sm btn-outline-secondary" href="'+d.bits[i].url_period+'">' + d.bits[i].period + ' <i class="fa fa-angle-double-right"></i></a></td>';
+                t = t + '<td class="align-middle"><span class="btn btn-sm text-light">' + d.bits[i].pr + '</span></td>';
+                t = t + '<td class="align-middle"><a class="btn btn-sm btn-outline-secondary" href="'+d.bits[i].url_range+'">Past ' + d.bits[i].range + ' <i class="fa fa-angle-double-right"></i></a></td>';
+                a = a +'<tr class="cp">' + t + '</tr>';
+            }
+            $("#maintext-insights").html(a);
+        });
+    });
+    {% endif %}
+</script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container mt50 mb50">
+    <h2>
+        FameBits: BestEver
+    </h2>
+    <p>Some of the best days to own {{ss}}</p>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+    {% if ss %}
+    {% include "snippets/logo_symbol_change.html" with ss=ss %}
+    {% include "snippets/watch_button.html" with watching=watching user=user request=request ss=ss csrf_token=csrf_token %}
+    <div class="table-responsive">
+    <table class="table table-hover mt-3">
+        <thead>
+            <tr>
+                <th>Past</th>
+                <th>Best period to own {{ss}}</th>
+                <th>Rank</th>
+                <th>Best stocks then</th>
+            </tr>
+        </thead>
+        <tbody id="maintext-insights">
+        </tbody>
+    </table>
+    </div>
+
+    <div class="my-3 py-3">
+        <a class="btn btn-sm btn-secondary" href="/fb/bes/{{ss}}/">Tell me in human language <i class="fa fa-angle-double-right"></i></a>
+    </div>
+    {% endif %}
+</div>
+{% endblock body %}

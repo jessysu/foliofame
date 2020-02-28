@@ -1,0 +1,8 @@
+    <div class="d-flex mt-3 justify-content-center">
+        <span id="maintext-famebits-date"></span>
+    </div>
+    <script>
+        $.getJSON('/api/v1/famebits/date/', function(data) {
+            $("#maintext-famebits-date").html('<span class="badge badge-dark">'+data.date+'</span>');
+        });
+    </script>

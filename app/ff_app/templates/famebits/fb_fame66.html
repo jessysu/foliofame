@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ss}} Fame66 - FameBits{% endblock %}
+{% block mdesc %}Windowed performance listing for {{ss}}. Judging from differnt holding period until today.{% endblock %}
+{% block ogtitle %}{{ss}} Performance - distilled knowledge from data{% endblock %}
+{% block ogdesc %}Windowed performance listing for {{ss}}{% endblock %}
+{% block ogimage %}https://storage.googleapis.com/iex/api/logos/{{ss}}.png{% endblock %}
+
+{% block header %}
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highcharts/7.0.3/highstock.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highcharts/7.0.3/themes/dark-unica.js"></script>
+        <script src="{% static 'js/js_getFame66_nvd.js' %}"></script>
+        <script src="{% static 'js/js_drawIEXLine.js' %}?v1"></script>
+<script>
+    {% if ss %}
+    $(document).ready(function(){
+        $.getJSON('/api/v1/famebits/f66/{{ss}}/', function(d) {
+            var a = ''
+            for (i in d.bits) {
+                var t = '';
+                t = t + '<td class="align-middle"><span>' + d.bits[i].range + '</span></td>';
+                t = t + '<td class="align-middle"><span class="' + (d.bits[i].c_diff < 0 ? 'scr' : 'scg') + '">' + d.bits[i].c_diff + '%</span></td>';
+                t = t + '<td class="align-middle"><span>' + d.bits[i].pr + '</span></td>';
+                a = a +'<tr class="cp">' + t + '</tr>';
+            }
+            $("#maintext-insights").html(a);
+        });
+        getFame66('{{ss}}', txtcolor="white");
+        drawIEX('{{ss}}', 'chart-hc-candle');
+    });
+    {% endif %}
+</script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container mt50 mb50">
+    <h2>
+        FameBits: Fame66
+    </h2>
+    <p>6-grade performance over 6 long-short windows</p>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+    {% if ss %}
+    {% include "snippets/logo_symbol_change.html" with ss=ss %}
+    {% include "snippets/watch_button.html" with watching=watching user=user request=request ss=ss csrf_token=csrf_token %}
+    <table class="table table-hover mt-3">
+        <thead>
+            <tr>
+                <th>In the past</th>
+                <th>Gain</th>
+                <th>Rank {% include "ranking_exp.html" with verbiage="1" %}</th>
+            </tr>
+        </thead>
+        <tbody id="maintext-insights">
+        </tbody>
+    </table>
+    
+    <div class="my-3 py-3">
+        <a class="btn btn-sm btn-secondary m-1" href="/fb/f6s/{{ss}}/">Tell me in human language <i class="fa fa-angle-double-right"></i></a>
+    </div>
+
+    <div id="chart-fame66-exp" class="my-3 py-3 mx-3" style="height:240px;width:100%;max-width:840px"><svg></svg></div>
+    
+    <div class="my-3">
+        {% include "snippets/other_button.html" with ob=ob %}
+    </div>
+
+    <div id="chart-hc-candle" class="my-5" style="height: 400px; min-width: 310px"></div>
+    {% endif %}
+</div>
+{% endblock body %}

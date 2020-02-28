@@ -1,0 +1,35 @@
+    <a class="cp" data-toggle="modal" data-target="#rankExp">
+        {%if verbiage == "1" %}<i class="fa fa-info-circle fa-lg"></i>{%else%}(How the ranking works?){%endif%}
+    </a>
+    <div class="modal fade" id="rankExp" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content" style="text-align:left">
+                <div class="modal-header">
+                    <h4 class="modal-title text-dark">Ranking SP500 stocks</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body text-dark">
+                    <p>
+                        The stocks are compared to the peer stocks in the same period of time.
+                        During an arbitrary period of time, the top 12% of the stocks are ranked <span class="btn btn-sm btn-info mt2 cd">A</span>.
+                        For S&P 500 stocks, the top 12% means the top 60 stocks.
+                        Then the <span class="btn btn-sm btn-info mt2 cd">A</span> stocks are equally divided into 3 groups,
+                        <span class="btn btn-sm btn-info mt2 cd">A+</span>, <span class="btn btn-sm btn-info mt2 cd">A</span> and <span class="btn btn-sm btn-info mt2 cd">A-</span>.
+                        Each of them has 20 stocks.
+                    </p>
+                    <p>
+                        For S&P 500 stocks, the top 61-120 stocks belong to the group <span class="btn btn-sm btn-info mt2 cd">B</span>.
+                        Similarly, top 121-180 stocks belong to group <span class="btn btn-sm btn-info mt2 cd">C</span>,
+                        top 181-240 stocks belong to group <span class="btn btn-sm btn-info mt2 cd">D</span>,
+                        and top 241-300 stocks belong to group <span class="btn btn-sm btn-info mt2 cd">E</span>.
+                    </p>
+                    <p>
+                        The lower 40% of the stocks are all ranked <span class="btn btn-sm btn-info mt2 cd">F</span>.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>

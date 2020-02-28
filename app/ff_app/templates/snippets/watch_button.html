@@ -1,0 +1,30 @@
+    {% if ss %}
+    {% if watching == 0 %}
+    <span class="btn btn-sm btn-outline-secondary m-1" onclick="modWatch2()" id="btn-watch">add watch <i class="fa fa-eye"></i></span>
+    {% else %}
+    <span class="btn btn-sm btn-outline-secondary active m-1" onclick="window.open('/my/watch/','_self')">watching <i class="fa fa-angle-double-right"></i></span>
+    {% endif %}
+    {% endif %}
+
+    <script>
+    function modWatch2() {
+        {% if user.is_authenticated %}
+        $.ajax({
+            url: "/watch/add/{{ss}}/",
+            type: "POST",
+            data: {"csrfmiddlewaretoken": "{{csrf_token}}", "view": "recent_quotes"},
+            success: function(data) {
+                if (data.message == "Succeeded"){
+                    $('#btn-watch').html('watching <i class="fa fa-angle-double-right"></i>');
+                    $('#btn-watch').attr("onclick", "window.open('/my/watch/','_self')");
+                    $('#btn-watch').addClass("active");
+                } else {
+                	alert(data.message);
+                }
+            }
+        });
+        {% else %}
+        window.open("/accounts/login/?next={{request.path}}","_self");
+        {% endif %}
+    }
+    </script>

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block mrobots %}noindex, nofollow {% endblock %}
+
+
+{% block body %}
+    <div class="jumbotron" style="height:90vh;">
+        <div style="text-align:center;">
+            <h1 style="font-size:1000%">404</h1>
+            <h5 class="my-5">The page you are looking for might have been removed.</h5>
+            <a href="/" class="btn btn-xl btn-primary">Let's go home</a>
+        </div>
+    </div>
+{% endblock body %}

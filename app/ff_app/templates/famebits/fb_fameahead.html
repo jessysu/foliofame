@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ss}} Ahead - Famebits{% endblock %}
+{% block mdesc %}Looking ahead based on current {{ss}} status. Learn from history!{% endblock %}
+{% block ogtitle %}{{ss}} Ahead - distilled knowledge from data{% endblock %}
+{% block ogdesc %}Looking ahead based on current {{ss}} status. Learn from history!{% endblock %}
+{% block ogimage %}https://storage.googleapis.com/iex/api/logos/{{ss}}.png{% endblock %}
+
+{% block header %}
+<script>
+{% if ss %}
+$(document).ready(function(){
+	$.getJSON('/api/v1/famebits/ahd/{{ss}}/10/', function(d) {
+	    var t = '';
+	    for (i in d.bits) {
+	        t = t + '<div class="list-group-item bg-dark text-light"><i class="fa fa-asterisk"></i> '+d.bits[i]+'</div>';
+	    }
+	    $("#maintext-insights").html(t);
+	});
+});
+{% endif %}
+</script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container my-5">
+    <h2>
+        FameBits: Ahead
+    </h2>
+    <p>Sharable insights ahead of {{ss}}</p>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+    {% include "snippets/logo_symbol_change.html" with ss=ss %}
+    {% include "snippets/watch_button.html" with watching=watching user=user request=request ss=ss csrf_token=csrf_token %}
+    <div class="list-group list-group-flush my-3" id="maintext-insights"></div>
+    <div class="my-5">
+        <small>*Bear with us while we roll out the features around tracked events</small>
+    </div>
+</div>
+{% endblock body %}

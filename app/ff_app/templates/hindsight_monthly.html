@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block title %}Hindsight - FolioFame{% endblock %}
+{% block ogtitle %}Hindsight{%if ss%} on {{ss}}{%endif%}{%if pr%}: ranked {{pr}} between {{ds}} and {{de}},{%endif%} by FolioFame{% endblock %}
+
+{% block header %}
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha.17/css/tempusdominus-bootstrap-4.min.css" />
+        <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha.17/js/tempusdominus-bootstrap-4.min.js"></script>
+        <script src="//twitter.github.io/typeahead.js/releases/latest/typeahead.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
+<script>
+    function intToString (value) {
+        var suffixes = ["", "K", "M", "B","T"];
+        var suffixNum = Math.floor(((""+value).length-1)/3);
+        var shortValue = parseFloat((suffixNum != 0 ? (value / Math.pow(1000,suffixNum)) : value).toPrecision(2));
+        if (shortValue % 1 != 0) {
+            var shortNum = shortValue.toFixed(1);
+            }
+        return shortValue+suffixes[suffixNum];
+    }
+    var etnow  = moment(new Date()).tz("America/Toronto");
+    var ethm = etnow.format("HHmm");
+    var Sclose = {};
+    var SCP = {};
+    {% for r in symbol_list %}
+    $.getJSON('https://api.iextrading.com/1.0/stock/{{r.symbol}}/quote', function(data) {
+        $("#maintext-{{r.sym_id}}-close").text((data.close).toFixed(2));
+        $("#maintext-{{r.sym_id}}-chp").attr("class", ((data.changePercent<0) ? "scr":"scg"));
+        $("#maintext-{{r.sym_id}}-chp").text(((data.changePercent<0) ? "":"+")+Math.round(data.changePercent*10000)/100+'%');
+        $("#maintext-{{r.sym_id}}-cap").html('$'+intToString(data.marketCap));
+        $("#maintext-{{r.sym_id}}-ytd").attr("class", ((data.ytdChange<0) ? "scr":"scg"));
+        $("#maintext-{{r.sym_id}}-ytd").text('YTD'+Math.round(data.ytdChange*10000)/100+'%');
+        Sclose['{{r.symbol}}'] = data.previousClose;
+        SCP['{{r.symbol}}'] = data.calculationPrice;
+        $("#maintext-{{r.sym_id}}-pe").text('PE'+data.peRatio.toPrecision(3));
+    });
+    {% endfor %}
+    if ( etnow.isoWeekday() < 6 && ethm < "2030" && ethm > "0830") {
+        console.log("Start socket");
+        var socket = io.connect('https://ws-api.iextrading.com/1.0/tops');
+        socket.on('connect', function () {
+            socket.emit('subscribe', '{%for r in symbol_list %}{{r.symbol}}{%if not forloop.last%},{%endif%}{%endfor%}');
+            console.log('Connection! in socket on');
+        });
+        function logScreen(jn) {
+            var j = JSON.parse(jn);
+            var d = moment(new Date(j.lastUpdated)).tz("America/Toronto");
+            var dd = d.format("YYYY-MM-DD");
+            var hm = d.format("HHmm");
+            if (hm < "2030" && SCP[j.symbol] != "close" && j.lastSalePrice > 0) {
+                var c = j.lastSalePrice;
+                var b = Sclose[j.symbol];
+                var s = "";
+                if (c < b) {
+                    $("#maintext-"+j.symbol.replace('.','-')+"-chp").attr("class", "scr");
+                } else {
+                    $("#maintext-"+j.symbol.replace('.','-')+"-chp").attr("class", "scg");
+                    s = "+";
+                }
+                $("#maintext-"+j.symbol.replace('.','-')+"-chp").text(s + Math.round((c-b)/b*10000)/100 + "%");
+                $("#maintext-"+j.symbol.replace('.','-')+"-close").text(c.toFixed(2));
+            }
+        }
+        socket.on('message', logScreen);
+    }
+    function modWatch1(ss, ssid) {
+    	{% if user.is_authenticated %}
+        if ( $('#btn-w-'+ssid).hasClass('btn-primary')) {
+        	window.open('/my/watch/','_self');
+        } else {
+            $.ajax({
+                url: "/watch/add/"+ss+"/",
+                type: "POST",
+                data: {"csrfmiddlewaretoken": "{{csrf_token}}", "view": "recent_quotes"},
+                success: function(data) {
+                    $('#btn-w-'+ssid).html('<i class="fa fa-eye"></i> <i class="fa fa-angle-double-right"></i>');
+                    $('#btn-w-'+ssid).removeClass("btn-secondary");
+                    $('#btn-w-'+ssid).addClass("btn-primary");
+                }
+            });
+        }
+        {% else %}
+        window.open("/accounts/login/?next={{request.path}}","_self");
+        {% endif %}
+    }
+</script>
+{% endblock header %}
+
+{% block body %}
+
+{% regroup symbol_line|dictsort:"rn" by rn as line_list %}
+
+<div class="container mt50">
+    <h2>Hindsight <i class="far fa-dot-circle fa-lg text-primary"></i></h2>
+    <p>Best stocks in monthly periods (Or <a href="/hsd/">try daily</a>).</p>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+
+    {% if pr %}
+    <p style="padding-top:30px">During <u>{{ds}}</u>{%if ds != de%} and <u>{{de}}</u>{%endif%}, the performance of <b>{{ss}}</b> was ranked {{pr}}.</p>
+    <span class="bg-info text-white rounded p-2">
+        {% include "ranking_exp.html" %}
+    </span>
+    {% endif %}
+
+    <div class="table-responsive mt20 cd">
+    <table class="table table-hover" style="padding-bottom:100px">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Gain</th>
+                <th>Symbol</th>
+                <th>Latest Performance</th>
+                <th>Security</th>
+                <th>Sector</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in symbol_list %}
+            <tr>
+                <td class="align-middle">{% if r.symbol == ss %}<span class="btn btn-sm btn-info">{{pr}}</span>{%else%}{{r.rn|floatformat:"0"}}{%endif%}</td>
+                <td class="align-middle">{{r.c_diff|floatformat:"0"}}%</td>
+                <td class="align-middle">
+                    <span class="col-12 col-lg-7 float-left p-1 pr-0"><a class="btn btn-sm btn-primary btn-block" href="/fh/{{r.symbol}}/" target="_blank">{{r.symbol}}</a></span>
+                    <span class="col-12 col-lg-5 float-left p-1 pr-0"><span id="btn-w-{{r.sym_id}}" class="btn btn-sm btn-outline-{%if r.watching > 0%}primary{%else%}secondary{%endif%} btn-block" onclick="modWatch1('{{r.symbol}}','{{r.sym_id}}');">{%if r.watching == 0%}+ <i class="fa fa-eye"></i>{%else%}<i class="fa fa-eye"></i> <i class="fa fa-angle-double-right"></i>{%endif%}</span></span>
+                </td>
+                <td class="align-middle nw bg-dark">
+                    <span id="maintext-{{r.sym_id}}-close" title="Close Price" class="text-light">{{r.l_close}}</span> 
+                    <span id="maintext-{{r.sym_id}}-chp" class="{%if r.l_dp >= 0%}scg{%else%}scr{%endif%}">
+                        {%if r.l_dp >= 0%}+{%endif%}{{r.l_dp}}%</span>
+                    <span id="maintext-{{r.sym_id}}-cap" class="scb" title="MarketCap"></span>
+                    <span id="maintext-{{r.sym_id}}-pe" class="scy" title="Price to EPS ratio"></span>
+                    <span id="maintext-{{r.sym_id}}-ytd" title="YearToDate change"></span>
+                </td>
+                <td class="align-middle">{{r.security}}</td>
+                <td class="align-middle">{{r.sector}}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <h2>&nbsp;</h2>
+    {% if pr %}
+    <h4>Rank some other stock?</h4>
+    {% else %}
+    <h4>Rank the performance for a stock symbol?</h4>
+    {% endif %}
+
+    <form action="/hsm/" method="get" class="mt20">
+        <div class="row">
+            <div class="form-group col-md-3 col-sm-6 col-12">
+                <label for="ss">Which SP500 stock (optional)</label>
+                <input type='text' class="form-control typeahead" autocomplete="off" name="ss" id="ss" data-provide="typeahead" {%if ss%}value="{{ss}}"{%else%}placeholder="SYMBOL"{%endif%} onfocus="this.setSelectionRange(0, this.value.length)"/>
+            </div>
+        </div>
+        <div class="row">
+            <div class="form-group col-md-3 col-sm-6 col-12">
+                <label for="ds">From which month (optional)</label>
+                <div class='input-group date' id='datetimepicker6' data-target-input="nearest">
+                    <input type='text' class="form-control datetimepicker-input" data-target="#datetimepicker6" name="ds" {%if ds%}value="{{ds}}"{%else%}placeholder="MM/YYYY"{%endif%} />
+                    <span class="input-group-append" data-target="#datetimepicker6" data-toggle="datetimepicker">
+                        <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                    </span>
+                </div>
+            </div>
+            <div class="form-group col-md-3 col-sm-6 col-12">
+                <label for="de">To which month (optional)</label>
+                <div class='input-group date' id='datetimepicker7' data-target-input="nearest">
+                    <input type='text' class="form-control datetimepicker-input" data-target="#datetimepicker7" name="de" {%if de%}value="{{de}}"{%else%}placeholder="MM/YYYY"{%endif%} />
+                    <span class="input-group-append" data-target="#datetimepicker7" data-toggle="datetimepicker">
+                        <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Check the performance for above period <i class="fa fa-angle-double-right" aria-hidden="true"></i></button>
+            </div>
+        </div>
+        {% if rq %}
+        <div class="row">
+            <p class="col-12 mt20"><b>Or during the past </b></p>
+        </div>
+        <div class="row col-12">
+            {% for r in rq %}
+            <span class="btn btn-primary mt5" onclick="ranged_q('{{r.link}}')">{{r.term}} <i class="fa fa-angle-double-right" aria-hidden="true"></i></span>&nbsp;
+            {% endfor %}
+            <span class="btn btn-primary mt5" onclick="ranged_q('{{ytd.link}}')">Year-to-date <i class="fa fa-angle-double-right" aria-hidden="true"></i></span>&nbsp;
+        </div>
+        {% endif %}
+    </form>
+    <script type="text/javascript">
+    function ranged_q(l) {
+        window.open(l + $("#ss").val(), "_self");
+    }
+    $(function () {
+        $('#datetimepicker6').datetimepicker({
+            viewMode: 'years',
+            format: 'MM/YYYY',
+            minDate: moment('{{SminD}}','MM/YYYY'),
+            maxDate: moment('{{SmaxD}}','MM/YYYY'),
+            useCurrent: false //Important! See issue #1075
+        });
+        $('#datetimepicker7').datetimepicker({
+            viewMode: 'years',
+            format: 'MM/YYYY',
+            minDate: moment('{{EminD}}','MM/YYYY'),
+            maxDate: moment('{{EmaxD}}','MM/YYYY'),
+            {% if ds %}
+            useCurrent: false //Important! See issue #1075
+            {% endif %}
+        });
+        $("#datetimepicker6").on("change.datetimepicker", function (e) {
+            $('#datetimepicker7').datetimepicker("minDate",e.date);
+        });
+        $("#datetimepicker7").on("change.datetimepicker", function (e) {
+            $('#datetimepicker6').datetimepicker("maxDate",e.date);
+        });
+    });
+    var numbers = new Bloodhound({
+    	  datumTokenizer: Bloodhound.tokenizers.whitespace,
+    	  queryTokenizer: Bloodhound.tokenizers.whitespace,
+    	  local:  [{%for s in SP500%}"{{s}}",{%endfor%}]
+    	});
+   	numbers.initialize();
+   	$(".typeahead").typeahead({
+   	  items: 9,
+   	  source:numbers.ttAdapter()
+   	});
+    </script>
+
+    <h1>&nbsp;</h1>
+    <h1>&nbsp;</h1>
+
+    <h4>Gain movement in percentage (%)</h4>
+    <div class="table-responsive">
+        <div id="sline" style="height:360px;width:90%;min-width:640px">
+            <svg></svg>
+        </div>
+    </div>
+<script>
+nv.addGraph(function() {
+	  var chart = nv.models.lineChart()
+	    .useInteractiveGuideline(true)
+	    .margin({right: 30})
+	    ;
+
+	  chart.xAxis
+	    .axisLabel('Date')
+	    .tickFormat(function(d){return d3.time.format('%m/%d/%Y')(new Date(d+new Date().getTimezoneOffset()*60000))})
+	    ;
+
+	  chart.yAxis
+	    .axisLabel('Gain (%)')
+	    .tickFormat(d3.format('.02f'))
+	    ;
+
+	  d3.select('#sline svg')
+	    .datum(data_sline)
+	    .transition().duration(500)
+	    .call(chart)
+	    ;
+
+	  nv.utils.windowResize(chart.update);
+
+	  return chart;
+	});
+var data_sline = [
+	{% for s in line_list %}
+	{
+		key:'{{s.list.0.symbol}}',
+		values:[{% for p in s.list %}
+			{x:{{p.close_date}} , y:{{p.gp}} },
+		{% endfor %}]
+	},
+	{% endfor %}
+];
+</script>
+
+    <h1>&nbsp;</h1>
+</div>
+
+{% endblock body %}

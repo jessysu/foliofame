@@ -1,0 +1,92 @@
+{% extends 'accounts/base_login.html' %}
+{% load i18n %}
+{% load staticfiles %}
+<!-- templates/registration/login.html -->
+
+{% block title %}Registration - Form{% endblock %}
+
+
+
+{% block header %}
+    <link rel="stylesheet" href="{% static 'css/loginregister.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-social.css' %}">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/resources/demos/style.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script>
+  $( function() {
+    $( document ).tooltip({
+        position: {
+            my: "left top",
+            at: "right+5 top-5",
+            collision: "none"
+          },
+      items: "img, [data-geo], [title]",
+      content: function() {
+        var element = $( this );
+        if ( element.is( "[data-geo]" ) ) {
+          var text = element.text();
+          return "<div>+text+</div>";
+        }
+        if ( element.is( "[title]" ) ) {
+          return element.attr( "title" );
+        }
+        if ( element.is( "img" ) ) {
+          return element.attr( "alt" );
+        }
+      }
+    });
+  } );
+    </script>
+
+{% endblock %}
+
+
+{% block body_login %}
+                <div class="form-body col-9 col-md-6 col-lg-4 rounded my-2">
+                    <div class="row">
+                        <div class="form-body">
+                            <ul class="nav nav-tabs">
+                                <li>Register Account</li>
+                            </ul>
+                            <div class="tab-content">
+                                <div id="sectionB" class="tab-pane fade show active">
+                        			<div class="innter-form">
+
+                                        <form method="post" action="/accounts/register/">
+                                            {% csrf_token %}
+
+                                            <label for="id_username" class="sr-only">Username:</label>
+                                            <input type="text" name="username"  maxlength="150" autofocus required id="id_username" class="form-control" placeholder="Username"
+                                                {% if form.username.help_text %} title="{{ form.username.help_text|safe }}" {% endif %}
+                                            />
+                                            {{ form.username.errors }}
+
+                                            <label for="id_email" class="sr-only">Email:</label>
+                                            <input type="email" name="email" required id="id_email" placeholder="Email" class="form-control mt10">
+                                            {{ form.email.errors }}
+
+                                            <label for="id_password1" class="sr-only">Password:</label>
+                                            <input type="password" name="password1" required id="id_password1" class="form-control" placeholder="password"
+                                                {% if form.password1.help_text %} title="{{ form.password1.help_text|safe }}" {% endif %}
+                                            />
+                                            {{ form.password1.errors }}
+
+                                            <label for="id_password2" class="sr-only">password confirmation:</label>
+                                            <input type="password" name="password2" required id="id_password2" class="form-control" placeholder="password confirmation"
+                                                {% if form.password2.help_text %} title="{{ form.password2.help_text|safe }}" {% endif %}
+                                            />
+                                            {{ form.password2.errors }}
+
+                                            <input class="btn btn-danger btn-block" type="submit" value="Submit" />
+                                        </form>
+                                    </div>
+                                    <div class="clearfix"></div>
+                                </div> <!-- <div id="sectionB" class="tab-pane fade show active"> -->
+                            </div> <!-- <div class="tab-content"> -->
+                        </div> <!-- <div class="form-body"> -->
+                    </div> <!-- <div class="row"> -->
+                </div>
+{% endblock body_login %}

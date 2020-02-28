@@ -1,0 +1,7 @@
+#* * * * * root echo "Hello world" >> /var/log/cron.log 2>&1
+#45 05 * * * root python3 -u /app/ff_scripts/test.py  >> /var/log/cron.log 2>&1
+00 04 * * 2,3,4,5,6 root python3 -u /app/ff_scripts/get_stock_adj_iex.py >> /var/log/cron.log 2>&1
+00 10 * * * root python3 -u /app/ff_scripts/backsql.py >> /var/log/cron.log 2>&1
+*/15 * * * * root python3 -u /app/ff_scripts/status_scan.py >> /var/log/cron_status_scan.log 2>&1
+
+# An empty line is required at the end of this file for a valid cron file.

@@ -1,0 +1,63 @@
+    <a class="cp" data-toggle="modal" data-target="#fame66Exp">
+        <i class="fa fa-info-circle"></i>
+    </a>
+    <div class="modal fade" id="fame66Exp" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content" style="text-align:left">
+                <div class="modal-header">
+                    <h4 class="modal-title text-dark">Fame66 Score</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body text-dark">
+                    <p>
+                        The Fame66 Score evaluates and summarizes the performance of a stock during 6 time spans over the past 6 months. 
+                        The chart below for <b>{{symbol}}</b> shows the considered time spans: the past 2 days, past 1 week, past 2 weeks, past 1 month, past 3 months and past 6 months.
+                    </p>
+                    <div id="chart-fame66-exp" style="height:240px;width:100%"><svg></svg></div>
+                    <p>
+                        The ranked gain for each time span is weighted equally into the Fame66 Score.
+                        Therefore, this score favors stocks with good performance in the past few days.
+                        Because the recent gain in the smaller time spans can propagate into the larger time spans.
+                    </p>
+                    <p>
+                        Moreover, the Fame66 Score considers the opportunity cost in choosing one stock over the others.
+                        The rank is the relative performance among the SP500 pool, regardless the market being bearish or bullish.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $.getJSON('/api/v1/fame66/{{symbol}}/', function(data) {
+            nv.addGraph(function() {
+                var chart = nv.models.discreteBarChart()
+                    .x(function(d) { return d.label })
+                    .y(function(d) { return d.value/100 })
+                    .margin({"left":5,"right":5,"top":20,"bottom":60})
+                    .valueFormat(d3.format('+,.2%'))
+                    .staggerLabels(true).showYAxis(false)
+                    .showValues(true);
+                chart.color(function(d){
+                    var dt = 250/(1+Math.pow(Math.E,-0.08*d.value)) - 125;
+                    var r = (dt<0)? ("0"+((180-dt/2)|0).toString(16)).slice(-2).toUpperCase() : "00";
+                    var g = (dt<0)? "00" : ("0"+((128+dt)|0).toString(16)).slice(-2).toUpperCase();
+                    return "#"+r+g+"00"
+                });
+                chart.tooltip.contentGenerator(function(d){
+                    return '<p><b>' + ((d.data.value<0)?"":"+") + d.data.value + '%</b> in the past <b>' + d.data.label +'</b></p>';
+                });
+                d3.select('#chart-fame66-exp svg')
+                    .datum([data])
+                    .transition().duration(500)
+                    .call(chart);
+                nv.utils.windowResize(chart.update);
+                return chart;
+            });
+        });
+        $('#fame66Exp').on('shown.bs.modal',function(){
+            window.dispatchEvent(new Event('resize'));
+        })
+    </script>

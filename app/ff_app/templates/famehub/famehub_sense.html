@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ss}} - Sensehub by FolioFame{% endblock %}
+{% block mdesc %}Hub of sensed sentiments on {{ss}}, in human-digestible ways{% endblock %}
+{% block ogtitle %}{{ss}} {% if companyName %}({{companyName}}){%endif%}{% endblock %}
+{% block ogdesc %}Hub of sensed sentiments on {{ss}}, in human-digestible ways.{% endblock %}
+{% block ogimage %}https://storage.googleapis.com/iex/api/logos/{{ss}}.png{% endblock %}
+
+{% block header %}
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script src="//twitter.github.io/typeahead.js/releases/latest/typeahead.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
+        <script src="{% static 'js/js_int_to_str.js' %}"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highcharts/7.0.3/highstock.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highcharts/7.0.3/themes/dark-unica.js"></script>
+        <script src="{% static 'js/Chart.Bands.js' %}?v2"></script>
+        <script src="{% static 'js/js_drawFixedChartjs.js' %}?v2"></script>
+        <script src="{% static 'js/js_drawIEXLine.js' %}?v2"></script>
+        <script src="{% static 'js/js_getLastSS.js' %}?v2"></script>
+        <script src="{% static 'js/js_getFameHub.js' %}?v3"></script>
+        <script src="{% static 'js/js_watch_toggle.js' %}?v3"></script>
+        <script>
+        $(document).ready(function(){
+            {% if ss %}
+            $.getJSON('https://api.iextrading.com/1.0/stock/{{ss}}/logo', function(data) {
+                $("#maintext-symbol-logo").html('<img class="img-thumbnail mx-auto d-block gs" src="'+data.url+'" onerror="if (this.src!=\'/static/img/err.png\') this.src=\'/static/img/err.png\'"/>');
+            });
+            getIEXQuote("{{ss}}");
+            //getIEXnewsFH("{{ss}}");
+            //drawFixed("{{ss}}");
+            drawIEX("{{ss}}", "chart-hc-sense");
+            getFameSense("{{ss}}", "chart-sense", more=true);
+            {% endif %}
+            
+            {% if last_ss %}{% for r in last_ss %}
+            getLastSS('{{r.symbol}}');
+            {% endfor %}{% endif %}
+            $('#SSpy li a[href^="#"]').on('click', function(e){
+                e.preventDefault();
+                var hash = this.hash;
+                $('html, body').animate({
+                    scrollTop: $(hash).offset().top-80
+                }, 300, function(){
+                    window.location.has = hash;
+                });
+            });
+        });
+        </script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container my-5">
+    
+    <div id="home"></span>
+    <div class="d-none d-md-block">
+    <div class="float-right">
+    {% if last_ss %}
+    <div class="table-responsive mt-3 d-none d-md-block"><div style="white-space:nowrap;">{% for s in last_ss %}
+    <a class="btn btn-sm btn-outline btn-default" id="recent-{{s.sym_id}}-color" href="/fh/sense/{{s.symbol}}/">{{s.symbol}}<span id="recent-{{s.sym_id}}-chp"></span></a>
+    {% endfor %}
+    </div></div>
+    {% endif %}
+    </div>
+    <h3>FameSense</h3>
+    <p class="d-none d-lg-block">Hub of sensed sentiments</p>
+    </div>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+
+
+    {% if ss %}
+    <div class="card my-3 pt-3 bg-dark">
+        <div class="row align-items-center">
+            <div class="col-md-4 d-none d-md-block">
+                <span class="text-center" id="maintext-symbol-logo"></span>
+            </div> 
+            <div class="col-md-8 px-3">
+                <div class="float-right pr-2">
+                    <span class="text-light cp {% if watching > 0 %}d-none{%endif%}" id="w-icon-add" onclick="toggleWatch('{{ss}}','add',['w-icon-add','w-btn-add'],['w-icon-drop','w-btn-drop'],'{{csrf_token}}',{{user.is_authenticated|lower}},'{{request.path}}');"><i class="fa fa-eye"></i></span>
+                    <span class="text-warning cp {% if watching == 0 %}d-none{%endif%}" id="w-icon-drop" onclick="toggleWatch('{{ss}}','drop',['w-icon-add','w-btn-add'],['w-icon-drop','w-btn-drop'],'{{csrf_token}}',{{user.is_authenticated|lower}},'{{request.path}}');"><i class="fa fa-eye"></i></span>
+                </div>
+                <div class="row px-3">
+                    <span class="row pb-3 align-items-center">
+                        <span class="col-6 display-4 nw"><span class="pl-2">{{ss}}</span></span>
+                        <span class="btn btn-sm col-6" style="white-space:normal !important;word-wrap: break-word;cursor:text" id="maintext-symbol-title"></span>
+                    </span>
+                    <div class="row px-3">
+                    <span class="col-6 nw p-2">
+                        <span id="maintext-symbol-close"></span>
+                        <small>(<span id="maintext-symbol-chp"></span>)</small>
+                    </span>
+                    <span class="col-6 nw p-2">
+                        <sup>YTD</sup> <span id="maintext-symbol-ytd"></span>
+                    </span>
+                    <span class="col-12 col-lg-6 nw p-2" id="maintext-symbol-sense-wrap">
+                        <sup>Sentiments</sup> <span id="maintext-symbol-sense"></span>
+                    </span>
+                    <span class="col-12 col-lg-6 nw p-2" id="maintext-symbol-drift-wrap">
+                        <sup>Drift</sup> <span id="maintext-symbol-drift"></span>
+                    </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="my-5" id="chart-container">
+        <h5 class="mt-3">Dense Sense
+            {% include "snippets/explain_densesense.html" with verbiage="1" %}
+        </h5>
+        <div id="chart-js-line" style="height:300px;width:100%">
+            <canvas id="chart-sense"></canvas>
+        </div>
+        <h5 class="mt-3">Stock Price</h5>
+        <div id="chart-hc-sense" class="mb-3" style="height: 300px; min-width: 310px"></div>
+    </div>
+
+    <div class="mt-3" id="event-top">
+        <div class="col-12 px-0">
+            <a class="btn btn-sm btn-outline-secondary m-1" href="/fb/dme/{{ss}}/" target="_blank"><span class="d-none d-sm-inline-block">Move</span> trend <i class="fa fa-angle-double-right"></i></a>
+            <a class="btn btn-sm btn-outline-secondary m-1" href="/fb/f66/{{ss}}/" target="_blank"><span class="d-none d-sm-inline-block">Windowed</span> performance <i class="fa fa-angle-double-right"></i></a>
+            <span class="btn btn-sm btn-outline-secondary m-1 {% if watching > 0 %}d-none{%endif%}" id="w-btn-add" onclick="toggleWatch('{{ss}}','add',['w-icon-add','w-btn-add'],['w-icon-drop','w-btn-drop'],'{{csrf_token}}',{{user.is_authenticated|lower}},'{{request.path}}');">add watch <i class="fa fa-eye"></i></span>
+            <span class="btn btn-sm btn-outline-secondary m-1 active {% if watching == 0 %}d-none{%endif%}" id="w-btn-drop" onclick="window.open('/my/watch/','_self')">watching <i class="fa fa-angle-double-right"></i></span>
+            <span class="btn btn-sm btn-outline-secondary m-1 d-none" id="btn-ahead" onclick="window.open('/fb/ahd/{{ss}}/')"></span>
+        </div>
+    </div>
+
+    <div class="list-group my-5 pt-3" id="maintext-news"></div>
+
+    {% endif %}
+
+    {% include "snippets/typeahead_symbol_input.html" %}
+</div>
+{% endblock body %}

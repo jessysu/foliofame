@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block title %}FolioFame{% endblock %}
+{% block ogtitle %}Market Summary{% endblock %}
+{% block ogdesc %}Distilled stock market insights in deep and quick facts. Every detail at any granularity.{% endblock %}
+
+{% block header %}
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script src="//twitter.github.io/typeahead.js/releases/latest/typeahead.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
+        <script src="{% static 'js/js_int_to_str.js' %}"></script>
+        <script src="{% static 'js/js_getF66ColorCode.js' %}?v2"></script>
+        <script src="{% static 'js/js_getIEXNews.js' %}"></script>
+        <script src="{% static 'js/js_getBakingList.js' %}"></script>
+        <style>
+            .nv-zeroLine {display: none !important;}
+        </style>
+        <script>
+        function toggleBlk() {
+            if ($("#blk-evidence").hasClass("d-none")) {
+                $("#blk-paragraph").toggleClass("d-none");
+                $("#blk-evidence").toggleClass("d-none");
+                {% if user.is_authenticated %}
+                $.ajax({
+                    url: "/pref/home_block/btn/",
+                    type: "POST",
+                    data: {"csrfmiddlewaretoken": "{{csrf_token}}", "view": "home"},
+                    success: function(data) {}
+                });
+                {% endif %}
+            } else {
+                $("#blk-paragraph").toggleClass("d-none");
+                $("#blk-evidence").toggleClass("d-none");
+                {% if user.is_authenticated %}
+                $.ajax({
+                    url: "/pref/home_block/txt/",
+                    type: "POST",
+                    data: {"csrfmiddlewaretoken": "{{csrf_token}}", "view": "home"},
+                    success: function(data) {}
+                });
+                {% endif %}
+            }
+        };
+        $.getJSON('/api/v1/famebits/mkt/5/rich/', function(d) {
+            t = "";
+            for (i in d.bits) {
+                t = t + d.bits[i] + ". ";
+            }
+            t = '<span class="text-secondary"><i class="fa fa-2x fa-quote-left"></i></span> ' + t;
+            t = t + '<div class="text-secondary"><i class="fa fa-2x fa-quote-right"></i></div>';
+            $("#txt-paragraph").html(t);
+        });
+        $.getJSON('/api/v1/famebits/mkt/', function(d) {
+            t = "";
+            for (i in d.bits) {
+                t = t + '<a href="/fmr/'+d.bits[i].ftype+'/" class="btn btn-intro m-1" target="_blank" data-toggle="tooltip" data-placement="bottom" title="'+d.bits[i].desc+'">'+d.bits[i].name+'<span class="badge badge-secondary">'+d.bits[i].cnt+'</span></a>';
+            }
+            $("#txt-evidence").html(t);
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+        $(document).ready(function(){
+            $('[data-toggle="tooltip"]').tooltip(); 
+            $.getJSON('/api/v1/famelists/alldetail/10/', function(d) {
+                for (i in d.symbol_list) {
+                    getBakingItems("sta-"+i, d.symbol_list[i].symbol, d.symbol_list[i]);
+                }
+            });
+            if(performance.navigation.type == 2) {
+                location.reload(true);
+            }
+        });
+        </script>
+{% endblock header %}
+
+{% block body %}
+
+<header class="masthead">
+    <div class="container pt-lg-5">
+        <div class="row row-big">
+            <div class="col-lg-5 my-auto">
+                <div class="header-content mx-auto">
+                    <h2 class="display-5 mb-3">Deep Stock Insights</h2>
+                    <h6 class="mb-5">In digestible bites. Freshly served</h6>
+                    {% include "snippets/market_indexes.html" %}
+                    <div id="blk-evidence" class="mt-5 {%if is_text%}d-none{%endif%}">
+                        <div id="txt-evidence"></div>
+                        <span class="btn btn-sm btn-secondary mt-3" onclick="toggleBlk()">Quick summary</span>
+                    </div>
+                    <div id="blk-paragraph" class="{%if not is_text%}d-none{%endif%}">
+                        <h4 id="txt-paragraph" class="tl p-3 px-md-0"></h4>
+                        <span class="btn btn-sm btn-secondary mt-1" onclick="toggleBlk()">Major moves</span>
+                    </div>
+                    {% include "snippets/famebits_date.html" %}
+                </div>
+            </div>
+            <div class="col-lg-7 my-auto">
+                <div class="mx-auto">
+                    <div id="baking-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+
+<div class="container my-5">
+    {% include "snippets/typeahead_symbol_input.html" %}
+</div>
+
+<script>
+$("#mainNav").addClass("fixed-top");
+var navbarCollapse = function() {
+  if ($("#mainNav").offset().top > 100) {
+    $("#mainNav").addClass("navbar-shrink");
+  } else {
+    $("#mainNav").removeClass("navbar-shrink");
+  }
+};
+navbarCollapse();
+$(window).scroll(navbarCollapse);
+</script>
+
+{% endblock body %}

@@ -1,0 +1,12 @@
+{% extends 'accounts/base_login.html' %}
+{% load i18n %}
+{% load staticfiles %}
+<!-- templates/registration/login.html -->
+
+{% block title %}Registration Closed{% endblock %}
+
+{% block body_login %}
+                <div class="form-body col-9 col-md-6 col-lg-4 rounded my-2">
+                    <p>{% trans "Registration is currently closed." %}</p>
+                </div>
+{% endblock body_login %}

@@ -1,0 +1,16 @@
+    <div class="d-flex mt-5 justify-content-center">
+        <span class="col-4" id="maintext-mktidx-dia"></span>
+        <span class="col-4" id="maintext-mktidx-spy"></span>
+        <span class="col-4" id="maintext-mktidx-oneq"></span>
+    </div>
+    <script>
+        $.getJSON('https://api.iextrading.com/1.0/stock/DIA/quote', function(data) {
+            $("#maintext-mktidx-dia").html('<b class="text-'+(data.changePercent<0 ? 'danger' : 'success')+'">DowJones <small class="bg-dark rounded text-'+(data.changePercent<0 ? 'danger' : 'success')+'">'+(data.changePercent<0 ? '':'+')+Math.round(data.changePercent*10000)/100+'%</small></b>');
+        });
+        $.getJSON('https://api.iextrading.com/1.0/stock/SPY/quote', function(data) {
+            $("#maintext-mktidx-spy").html('<b class="text-'+(data.changePercent<0 ? 'danger' : 'success')+'">SP500 <small class="bg-dark rounded text-'+(data.changePercent<0 ? 'danger' : 'success')+'">'+(data.changePercent<0 ? '':'+')+Math.round(data.changePercent*10000)/100+'%</small></b>');
+        });
+        $.getJSON('https://api.iextrading.com/1.0/stock/ONEQ/quote', function(data) {
+            $("#maintext-mktidx-oneq").html('<b class="text-'+(data.changePercent<0 ? 'danger' : 'success')+'">Nasdaq <small class="bg-dark rounded text-'+(data.changePercent<0 ? 'danger' : 'success')+'">'+(data.changePercent<0 ? '':'+')+Math.round(data.changePercent*10000)/100+'%</small></b>');
+        });
+    </script>

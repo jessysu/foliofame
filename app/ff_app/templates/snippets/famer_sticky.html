@@ -1,0 +1,7 @@
+<div class="sticky-top" id="stick-pad">
+    <div class="float-right bg-secondary rounded p-1 pr-2 m-1">
+    {% for f in STYPE_LIST %}
+        <a class="btn btn-sm my-1 ml-1 btn-outline-dark{%if f.ftype == ftype%} active{%endif%}{%if f.ftype == 'chg' or f.ftype == 'cfp' or f.ftype == 'pfl'%} d-none{%endif%}" href="/fmr/{{f.ftype}}/" data-toggle="tooltip" data-placement="bottom" title="{{f.desc}}">{{f.short|safe}}</a>
+    {% endfor %}
+    </div>
+</div>

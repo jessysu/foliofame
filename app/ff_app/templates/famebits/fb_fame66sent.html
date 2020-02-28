@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ss}} Holding - FameBits{% endblock %}
+{% block mdesc %}Windowed performance insights for {{ss}}. Judging from differnt holding period until today.{% endblock %}
+{% block ogtitle %}{{ss}} Holding - distilled knowledge from data{% endblock %}
+{% block ogdesc %}Windowed performance insights for {{ss}}{% endblock %}
+{% block ogimage %}https://storage.googleapis.com/iex/api/logos/{{ss}}.png{% endblock %}
+
+{% block header %}
+<script>
+{% if ss %}
+$(document).ready(function(){
+	$.getJSON('/api/v1/famebits/f6s/{{ss}}/10/', function(d) {
+	    var t = '';
+	    for (i in d.bits) {
+	        t = t + '<div class="list-group-item bg-dark text-light"><i class="fa fa-asterisk"></i> '+d.bits[i]+'</div>';
+	    }
+	    $("#maintext-insights").html(t);
+	});
+});
+{% endif %}
+</script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container mt50 mb50">
+    <h2>
+        FameBits: Holding
+    </h2>
+    <p>Sharable insights on holding {{ss}}</p>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+    {% include "snippets/logo_symbol_change.html" with ss=ss %}
+    {% include "snippets/watch_button.html" with watching=watching user=user request=request ss=ss csrf_token=csrf_token %}
+    <div class="list-group list-group-flush my-3" id="maintext-insights"></div>
+    <div class="my-3">
+        <a class="btn btn-sm btn-secondary m-1" href="/fb/f66/{{ss}}/">Tell me all you know <i class="fa fa-angle-double-right"></i></a>
+        {% include "snippets/other_button.html" with ob=ob %}
+    </div>
+</div>
+{% endblock body %}

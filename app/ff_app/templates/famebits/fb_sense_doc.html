@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ss}} Sense - FameBits{% endblock %}
+{% block mdesc %}Article sensing for {{ss}}{% endblock %}
+{% block ogtitle %}{{ss}} Sense{% if title %} - {{title}}{%endif%}{% endblock %}
+{% block ogdesc %}Article sensing for {{ss}}{% endblock %}
+{% block ogimage %}https://storage.googleapis.com/iex/api/logos/{{ss}}.png{% endblock %}
+
+{% block header %}
+<script>
+    {% if ss and iex_id %}
+    $(document).ready(function(){
+        $.getJSON('/api/v1/famebits/sensd/{{ss}}/{{iex_id}}/', function(d) {
+            var t = '<h2 class="m-3 mt-5 cp" onclick="window.open(\'' + d.url + '\')">' + d.title + '<sup><small><small><i class="fas fa-external-link-alt ml-2"></i></small></small></sup></h2>';
+            var u = '';
+            if (d.source) {
+            	u = u + '<div class="col-12 m-3 cp" onclick="window.open(\''+d.url+'\')"><b>' + d.source + '</b><small class="ml-3">' + d.published + '</small></div>';
+            }
+            if (d.global_sense) {
+                var v = d.global_sense.toLowerCase().includes('neutral') ? "" : (d.global_sense.toLowerCase().includes('positive') ? "scg" : "scr");
+                u = u + '<h5 class="col-12 col-lg-4 m-3 '+v+'"><i class="fas fa-heartbeat mr-3"></i>' + d.global_sense + ' in general</h5>';
+            }
+            if (d.focus_sense) {
+                var v = d.focus_sense.toLowerCase().includes('neutral') ? "" : (d.focus_sense.toLowerCase().includes('positive') ? "scg" : "scr");
+                u = u + '<h5 class="col-12 col-lg-4 m-3 '+v+'"><i class="fas fa-heartbeat mr-3"></i>' + d.focus_sense + ' for ' + d.symbol + '</h5>';
+            }
+            t = t + '<div class="row">' + u + '</div>';
+            $("#maintext-highlights").html(t);
+        });
+        $.getJSON('/api/v1/famebits/sensdt/{{ss}}/{{iex_id}}/', function(d) {
+        	if ('bits' in d) {
+            	var a = '';
+                for (i in d.bits) {
+                    var t = '';
+                    t = t + '<td class="align-middle d-none d-md-table-cell"><span>' + d.bits[i].date + '</span></td>';
+                    t = t + '<td class="align-middle"><span>' + d.bits[i].date_desc + '</span></td>';
+                    t = t + '<td class="align-middle"><span class="' + (d.bits[i].chgPercent < 0 ? 'scr' : 'scg') + '">' + (d.bits[i].chgPercent < 0 ? '' : '+') + d.bits[i].chgPercent + '%</span></td>';
+                    t = t + '<td class="align-middle d-none d-md-table-cell"><span>$' + d.bits[i].close + '</span></td>';
+                    a = a +'<tr>' + t + '</tr>';
+                }
+                a = '<table class="table table-hover mt-3"><tbody>' + a + '</tbody></table>';
+                $("#maintext-track").html(a);
+            }
+        });
+        $.getJSON('/api/v1/famebits/send/{{iex_id}}/wrap/', function(d) {
+            var t = '';
+            for (i in d.bits) {
+                t = t + '<div class="list-group-item bg-dark text-light"><i class="fas fa-pen mr-3"></i>'+d.bits[i]+'</div>';
+            }
+            $("#maintext-insights").html(t);
+        });
+    });
+    {% endif %}
+</script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container mt50 mb50">
+    <h2>
+        Fame Sense
+    </h2>
+    {% if ss %}<p>Sensing articles featuring {{ss}}</p>{% endif %}
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+    {% if ss %}
+    <div id="maintext-highlights" class="my-3"></div>
+    <div id="maintext-track" class="my-5"></div>
+    <div id="maintext-insights" class="list-group list-group-flush my-3"></div>
+
+    {% include "snippets/logo_symbol_change.html" with ss=ss use_sense=1 %}
+    {% include "snippets/watch_button.html" with watching=watching user=user request=request ss=ss csrf_token=csrf_token %}
+
+    {% endif %}
+</div>
+{% endblock body %}

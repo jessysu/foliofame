@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+<!-- templates/registration/login.html -->
+
+{% block mrobots %}noindex, nofollow {% endblock %}
+
+{% block header %}
+    <link rel="stylesheet" href="{% static 'css/loginregister.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-social.css' %}">
+{% endblock %}
+
+
+{% block body %}
+
+<div class="bg">
+    <div class="rgba-gradient">
+        <div class="container pt150 pb50 mb30">
+            <div class="row justify-content-center">
+                {% block body_login %}
+                {% endblock body_login %}
+            </div>
+        </div>
+    </div>
+</div>
+{% include "snippets/fluid_header_fixed_top.html" with top=30 %}
+{% endblock body %}

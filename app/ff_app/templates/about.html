@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block title %}About - FolioFame{% endblock %}
+{% block mdesc %}Our terms of service, and ourselves{% endblock %}
+{% block ogtitle %}About FolioFame{% endblock %}
+{% block ogdesc %}Our terms of service, and ourselves{% endblock %}
+
+{% block body %}
+<div class="container">
+
+    <h2 class="mt-5 py-3">About Us</h2>
+    <p>
+        FolioFame summarizes the stock data into deep, readable insights.
+    </p>
+    <p>
+        We aim to simplify the knowledge discovery and understanding process for human traders like us.
+        Our analytics covers the major stocks for best timing, tips for holding, volume watch, daily moves, flux trend, windowed performance, and historical secrets.
+        Everyday, our engine crunches over 2.5TB of data to generate the realtime U.S. stock market summaries with multi-granularity detail.  
+    </p>
+    <p>
+        Please direct message our <a href="https://twitter.com/folio_fame" target="_blank">Twitter</a> to get in touch.
+    </p>
+
+    <h2 class="mt-5 py-3">Terms of Service</h2>
+    <p>By using FolioFame.com (the service), the user agrees the following</p>
+    <ol>
+        <li>The service is monitored to ensure its quality, which means the access to the service is logged.</li>
+        <li>The service employs Google Analytics, which collects pseudonymous identifiers such as hashed emails and Google user IDs. The service has no access to this data and it will be used in Google Analytics' report about aggregated site usage.</li>
+        <li>The user is responsible for all the consequence from using the service, including gain and loss.</li>
+        <li>The information from the service cannot be sold, redistributed or reproduced in any form, unless a license is obtained from FolioFame.com.</li>
+        <li>The information from the service cannot be used toward any activity that violates any law, or toward any illegal purposes.</li>
+        <li>All information from the service is provided "as is"; FolioFame.com and the affiliated individuals are free from any liability.</li>
+        <li>Additionally, the user is also governed by <a href="https://iextrading.com/api-exhibit-a/">the IEX's terms</a>.</li> 
+    </ol>
+
+    <div class="my-5 py-5">
+    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+        <input type="hidden" name="cmd" value="_s-xclick">
+        <input type="hidden" name="hosted_button_id" value="4MYKHR4UNE6UW">
+        <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+        <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+    </form>
+    </div>
+
+
+    <h2 class="mt-5 py-3">Team</h2>
+    
+    <div class="row py-3">
+        <div class="column">
+            <div class="card card-team bg-dark">
+                <img src="/static/img/team-armed-480.jpeg" alt="Jessy Su" style="width:100%">
+                <div class="container container-team">
+                    <h4>Jessy Su</h4>
+                    <p class="text-secondary">Founder</p>
+                    <p>Jessy is a data guru. He makes fun with all kinds of data.</p>
+                    <p>
+                        <a class="btn btn-dark" href="https://www.linkedin.com/in/jessysu" target="_blank"><i class="fab fa-3x fa-linkedin"></i></a> 
+                        <a class="btn btn-dark" href="https://twitter.com/su_jessy" target="_blank"><i class="fab fa-3x fa-twitter"></i></a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="column">
+            <div class="card card-team bg-dark">
+                <img src="/static/img/team-boardgame-480.jpeg" alt="Nelson Chen" style="width:100%">
+                <div class="container container-team">
+                    <h4>Nelson Chen</h4>
+                    <p class="text-secondary">Founder</p>
+                    <p>Nelson is a machine learning expert. He makes the machine learn.</p>
+                    <p>
+                        <a class="btn btn-dark" href="https://www.linkedin.com/in/qamchen" target="_blank"><i class="fab fa-3x fa-linkedin"></i></a> 
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="column">
+            <div class="card card-team bg-dark">
+                <img src="/static/img/team-aidroid-480.jpeg" alt="Fametom" style="width:100%">
+                <div class="container container-team">
+                    <h4>Fametom</h4>
+                    <p class="text-secondary">Founding Bot</p>
+                    <p>!@#$%^&*()</p>
+                    <p>
+                        <a class="btn btn-dark" href="https://twitter.com/folio_fame" target="_blank"><i class="fab fa-3x fa-twitter"></i></a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3>&nbsp;</h3>
+    
+</div>
+{% endblock %}

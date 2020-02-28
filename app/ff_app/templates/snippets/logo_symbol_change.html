@@ -1,0 +1,25 @@
+    {% if ss %}
+    <a class="d-flex m-3 justify-content-center gs" id="maintext-symbol-logo" href="{%if use_sense%}/fh/sense/{{ss}}/{%else%}/fh/{{ss}}/{%endif%}" target="_blank"></a>
+    <a class="btn btn-sm btn-outline-secondary" href="/fh/{{ss}}/"><big>{{ss}}</big></a> 
+    <span class="btn btn-sm">
+        $<span id="titletext-symbol-close"></span>
+        (<small id="titletext-symbol-chp"></small>)
+    </span>
+    <script>
+        $.getJSON('https://api.iextrading.com/1.0/stock/{{ss}}/logo', function(data) {
+            $("#maintext-symbol-logo").html('<img style="border-radius:10px" src="'+data.url+'" onerror="if (this.src!=\'/static/img/err.png\') this.src=\'/static/img/err.png\'"/>');
+        });
+        $.getJSON('https://api.iextrading.com/1.0/stock/{{ss}}/quote', function(d) {
+            data = d;
+            var s="";
+            if (data.changePercent < 0) {
+                $("#titletext-symbol-chp").attr("class", "scr");
+            } else {
+                $("#titletext-symbol-chp").attr("class", "scg");
+                s = "+";
+            }
+            $("#titletext-symbol-chp").text(s + Math.round(data.changePercent*10000)/100 + "%");
+            $("#titletext-symbol-close").text(d.latestPrice);
+        });
+    </script>
+    {% endif %}

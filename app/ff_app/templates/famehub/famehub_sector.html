@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}Sectors - Famehub by FolioFame{% endblock %}
+{% block mdesc %}Data-driven sector watcher{% endblock %}
+{% block ogtitle %}Famehub on Sectors - knowledgeable investing with data sense{% endblock %}
+{% block ogdesc %}Data-driven sector watcher{% endblock %}
+
+{% block header %}
+        <script src="//twitter.github.io/typeahead.js/releases/latest/typeahead.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+        <script src="{% static 'js/js_getLastSS.js' %}"></script>
+        <script>
+        function getSectorNews(sec3){
+            $.getJSON('/api/v1/famebits/sec/'+sec3+'/rich/10/', function(d) {
+                var t = '';
+                for (i in d.bits) {
+                    t = t + d.bits[i]+'. ';
+                }
+                $("#news-"+sec3).html(t);
+            });
+        }
+        /*
+        {% for r in sec_list %}getSectorNews("{{r.sector3}}");
+        {% endfor %}
+        */
+        {% if last_ss %}{% for r in last_ss %}
+        getLastSS('{{r.symbol}}');
+        {% endfor %}{% endif %}
+        </script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container mt50 mb50">
+    <h3>FameHub - Sectors</h3>
+    <p>Data-driven sector watcher</p>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+
+    <div class="mt-5">
+        {% for r in sec_list %}
+        <div class="row hvr3 bg-dark rounded my-2 py-5 px-md-2 align-items-center">
+            <div class="col-12 col-md-6 col-lg-4">
+                <a class="btn btn-sm btn-outline-light btn-block" href="/fb/sec/{{r.sector}}/">{{r.sector}}</a>
+                <a class="btn btn-sm btn-outline-light btn-block text-secondary {%if not r.sector_sense_desc%}d-none{%endif%}" href="/fb/sec/{{r.sector}}/">
+                    <span class="{%if r.sector_sense_desc == 'neutral'%}text-secondary{%elif r.sector_sense > 50%}text-success{%else%}text-danger{%endif%}">{{r.sector_sense_desc}}</span>
+                    <i class="fas fa-heartbeat"></i>
+                    <span class="{%if r.sense_drift_desc|slice:':6' == 'little'%}text-secondary{%elif r.sense_drift > 0%}text-success{%else%}text-danger{%endif%}">{{r.sense_drift_desc}}</span>
+                </a>
+            </div>
+            <div class="col-12 col-md-6 col-lg-8 row pl-5 pl-md-3">
+                <div class="col-12 col-lg-5 mt-3 mt-md-0 mt-lg-0">
+                    <span class="mr-3 {%if r.cm < 0%}scr{%else%}scg{%endif%}">{%if r.cm >= 0%}+{%endif%}{{r.marketchgPct}}%</span>
+                    <span class="mr-3 scg">{{r.n_u}} up</span>
+                    <span class="scr">{{r.n_d}} down</span>
+                </div>
+                <div class="col-12 col-lg-7 mt-3 mt-md-2 mt-lg-0">
+                    <span class="mr-3 nw"><sup>worth</sup> {{r.worth}} <small class="d-none d-md-inline-block">(<span class="{%if r.cm < 0%}scr{%else%}scg{%endif%}">{{r.change}}</span>)</small></span>
+                    <span class="nw"><sup>net move</sup> {{r.netmove}} <small class="d-none d-md-inline-block">({{r.netmovepct}}%)</small></span>
+                </div>
+            </div>
+            <div class="col-12 mt-3 d-none d-md-block"><small id="news-{{r.sector3}}"></small></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% include "snippets/typeahead_symbol_input.html" %}
+</div>
+
+{% endblock body %}

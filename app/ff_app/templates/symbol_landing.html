@@ -1,0 +1,424 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}Bestever - FolioFame{% endblock %}
+{% block ogtitle %}{{ss}} ranked {{symbol_desc.pr}} during the past {{d}} days{% endblock %}
+{%block ogdesc%}Recent performance for {{ss}} and the best times to own it. Bestever by FolioFame{%endblock%}
+{%block ogimage%}http://{{request.get_host}}/static/img/ff_bestever_{{symbol_desc.pr|make_list|first}}.jpg{%endblock%}
+
+{% block header %}
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+        <script src="//twitter.github.io/typeahead.js/releases/latest/typeahead.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
+        <script src="{% static 'js/js_int_to_str.js' %}"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+        <!-- 
+        <script src="//www.chartjs.org/chartjs-chart-financial/Chart.Financial.js"></script>
+         -->
+        <script src="{% static 'js/Chart.Financial.js' %}"></script>
+        <script src="{% static 'js/Chart.Bands.js' %}"></script>
+        <script src="{% static 'js/js_drawDynamicChartjs.js' %}"></script>
+
+<script>
+    function openSS(n) {
+        var ss = $("#input-ss"+n).val();
+        if (ss.length<6) {
+            window.open("/be/"+ss+"/30/", "_self");
+        }
+    }
+    var data, previousClose;
+    $.getJSON('https://api.iextrading.com/1.0/stock/{{ss}}/logo', function(data) {
+        $("#maintext-symbol-logo").html('<img style="border-radius:10px" src="'+data.url+'"/>');
+    });
+    $.getJSON('https://api.iextrading.com/1.0/stock/{{ss}}/quote', function(d) {
+        data = d;
+        previousClose = d.previousClose;
+        var s="";
+        if (data.changePercent < 0) {
+            $("#titletext-symbol-chp").attr("class", "scr");
+            $("#maintext-symbol-chp").attr("class", "scr");
+            $("#navbar-symbol-chp").attr("class", "scr");
+        } else {
+            $("#titletext-symbol-chp").attr("class", "scg");
+            $("#maintext-symbol-chp").attr("class", "scg");
+            $("#navbar-symbol-chp").attr("class", "scg");
+            s = "+";
+        }
+        $("#titletext-symbol-chp").text(s + Math.round(data.changePercent*10000)/100 + "%");
+        $("#maintext-symbol-chp").text(s + Math.round(data.changePercent*10000)/100 + "%");
+        $("#navbar-symbol-chp").text(s + Math.round(data.changePercent*10000)/100 + "%");
+        $("#navbar-symbol-close").text(data.close);
+        $("#maintext-symbol-pe").text(data.peRatio);
+        $("#maintext-symbol-ytd").attr("class", ((data.ytdChange<0) ? "scr":"scg"));
+        $("#maintext-symbol-ytd").text(Math.round(data.ytdChange*10000)/100+'%');
+        $("#maintext-symbol-cap").html('$'+intToString(data.marketCap));
+
+        $.getJSON('/api/v1/famebits/vol/{{ss}}/0/', function(d) {
+            if (d.z >= 0) {
+                var t = '<span class="scg"> +' +Math.round(d.z*10)/10+'&sigma;</span>';
+            } else {
+                var t = '<span class="scr"> ' +Math.round(d.z*10)/10+'&sigma;</span>';
+            }
+            $("#titletext-symbol-vol").html('<i class="fa fa-database"></i> '+d.volume_human+' ('+t+', '+ d.rarity +') <i class="fa fa-angle-double-right"></i>');
+        });
+        $.getJSON('/api/v1/famebits/bes/{{ss}}/0/', function(d) {
+            if (d.gain[0] == '+') {
+                var t = '<span class="scg"> ' + d.gain + '</span>';
+            } else {
+                var t = '<span class="scr"> ' + d.gain + '</span>';
+            }
+            $("#titletext-symbol-bes").html('<i class="fa fa-trophy"></i> once ' + t + ' in '+ d.duration +' <i class="fa fa-angle-double-right"></i>');
+        });
+        $.getJSON('/api/v1/famebits/f6s/{{ss}}/', function(d) {
+            if (d.dp[0] == '+') {
+                var t = '<span class="scg"> ' + d.dp + '</span>';
+            } else {
+                var t = '<span class="scr"> ' + d.dp + '</span>';
+            }
+            $("#titletext-symbol-f66").html('<i class="fa fa-quote-left"></i> '+ t +' past ' + d.term + ' <i class="fa fa-angle-double-right"></i>');
+        });
+
+        if ( data.calculationPrice == "tops") {
+            var socket = io.connect('https://ws-api.iextrading.com/1.0/tops');
+            socket.on('connect', function () {
+                socket.emit('subscribe', '{{ss}}');
+            });
+            function logScreen(jn) {
+                var j = JSON.parse(jn);
+                var c = j.lastSalePrice;
+                var b = data.close;
+                var s = "";
+                if (j.lastSalePrice < data.close) {
+                    $("#titletext-symbol-chp").attr("class", "scr");
+                    $("#maintext-symbol-chp").attr("class", "scr");
+                    $("#navbar-symbol-chp").attr("class", "scr");
+                } else {
+                    $("#titletext-symbol-chp").attr("class", "scg");
+                    $("#maintext-symbol-chp").attr("class", "scg");
+                    $("#navbar-symbol-chp").attr("class", "scg");
+                    s = "+";
+                }
+                $("#titletext-symbol-chp").text(s + Math.round((c-b)/b*10000)/100 + "%");
+                $("#maintext-symbol-chp").text(s + Math.round((c-b)/b*10000)/100 + "%");
+                $("#navbar-symbol-chp").text(s + Math.round((c-b)/b*10000)/100 + "%");
+                $("#titletext-symbol-close").text(c);
+                $("#maintext-symbol-close").text(c);
+                $("#navbar-symbol-close").text(c);
+            }
+            socket.on('message', logScreen);
+        }
+    });
+
+    $.getJSON('https://api.iextrading.com/1.0/stock/{{ss}}/news/last/5', function(data) {
+    	for (d in data) {
+            var dd = moment(data[d].datetime).format("YYYY-MM-DD hh:mm a z");
+            var dt = data[d].headline;
+            var str = '<span class="btn btn-sm btn-outline-primary mb-1">'+data[d].source+'</span> ';
+            str = str + '<a href="/re?s={{ss}}&v=be&t=iexnews&u=' + data[d].url + '" class="list-group-item-heading" target="_blank"><b>' + data[d].headline + '</b></a>';
+            var ds = data[d].summary;
+            if (ds.length > 50) {
+                str = str + '<p class="list-group-item-text fw400">'+ds+'</p>';
+            }
+            str = '<span class="list-group-item list-group-item-action flex-column">' + str + '<div id="news'+d+'"></div> <small class="pull-right p-1">' + dd + '</small></span>';
+            $("#maintext-news").append(str);
+            var related = data[d].related.split(",");
+            for (r in related) {
+                if (related[r].length < 6 && r < 3 && related[r]!='{{ss}}') {
+                    $.getJSON('https://api.iextrading.com/1.0/stock/'+related[r]+'/quote', (function(d_) {
+                        return function(rr) {
+                            var ns='<a class="btn btn-sm ';
+                            if (rr.change < 0) {
+                                ns = ns + 'btn-danger';
+                            } else {
+                                ns = ns + 'btn-success';
+                            }
+                            ns = ns + ' mt2" href="/be/'+rr.symbol+'/30/" target="_blank">'+rr.symbol+'</a> ';
+                            $("#news"+d_).append(ns);
+                        }
+                    })(d));
+                }
+            }
+        }
+    });
+
+    {% if last_ss %}{% for r in last_ss %}
+    $.getJSON('https://api.iextrading.com/1.0/stock/{{r.symbol}}/quote', function(data) {
+        $("#recent-{{r.sym_id}}-color").attr("class", ((data.changePercent<0) ? "btn btn-sm btn-danger":"btn btn-sm btn-success"));
+        $("#recent-{{r.sym_id}}-chp").text(((data.changePercent<0) ? " ":" +") + Math.round(data.changePercent*10000)/100+'%');
+    });
+    {% endfor %}{% endif %}
+    function modWatch2() {
+        {% if user.is_authenticated %}
+        $.ajax({
+            url: "/watch/add/{{ss}}/",
+            type: "POST",
+            data: {"csrfmiddlewaretoken": "{{csrf_token}}", "view": "recent_quotes"},
+            success: function(data) {
+                $('#btn-watch').html('watching <i class="fa fa-angle-double-right"></i>');
+                $('#btn-watch').attr("onclick", "window.open('/my/watch/','_self')");
+                $('#btn-watch').addClass("btn-primary");
+                $('#btn-watch').removeClass("btn-secondary");
+            }
+        });
+        {% else %}
+        window.open("/accounts/login/?next={{request.path}}","_self");
+        {% endif %}
+    }
+    drawDynamic("{{ss}}");
+</script>
+
+{% endblock header %}
+
+
+{% block body %}
+<div class="container mt100">
+    <h2>
+        Bestever <i class="fa fa-beer fa-lg text-primary"></i>
+    </h2>
+    <p>Best times to own a stock.</p>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-warning alert-dismissable mt50">
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+        {{message|safe}}
+    </div>
+    {% endfor %}
+{% endif %}
+
+    {% if last_ss %}
+    <div class="table-responsive mt50"><div style="white-space:nowrap;">{% for s in last_ss %}
+    <a class="btn btn-sm btn-outline btn-default" id="recent-{{s.sym_id}}-color" href="/be/{{s.sym_id}}/{{s.d}}/">{{s.symbol}}<span id="recent-{{s.sym_id}}-chp"></span></a>
+    {% endfor %}</div></div>
+    <div class=" d-md-none d-flex flex-row justify-content-between mt-2">
+        <span><i class="fa fa-angle-double-left"></i><i class="fa fa-ellipsis-h"></i></span>
+        <span><i class="fa fa-hand-o-up"></i></span>
+        <span><i class="fa fa-ellipsis-h"></i><i class="fa fa-angle-double-right"></i></span>
+    </div>
+    {% endif %}
+
+    <h3>&nbsp;</h3>
+    <h5>{{ss}}
+        <small>
+            <span id="titletext-symbol-close">{{symbol_desc.l_close}}</span>
+            <span id="titletext-symbol-chp" class="{%if symbol_desc.l_dp >= 0%}scg{%else%}scr{%endif%}">
+            {%if symbol_desc.l_dp >= 0%}+{%endif%}{{symbol_desc.l_dp}}%
+            </span>
+        </small>
+        <span id="titletext-symbol-vol" class="btn btn-sm btn-secondary m-1" onclick="window.open('/fb/vol/{{ss}}/','_self')"></span>
+        <span id="titletext-symbol-bes" class="btn btn-sm btn-secondary m-1" onclick="window.open('/fb/bes/{{ss}}/','_self')"></span>
+        <span id="titletext-symbol-f66" class="btn btn-sm btn-secondary m-1" onclick="window.open('/fb/f6s/{{ss}}/','_self')"></span>
+        {% if watching == 0 %}
+        <span id="btn-watch" class="btn btn-sm btn-secondary m-1" onclick="modWatch2()">add to watchlist <i class="fa fa-eye"></i></span>
+        {% else %}
+        <span id="btn-watch" class="btn btn-sm btn-primary m-1" onclick="window.open('/my/watch/','_self')">watching <i class="fa fa-angle-double-right"></i></span>
+        {% endif %}
+    </h5>
+    <div class="table-responsive">
+        <div style="height:300px;width:90%;min-width:360px;max-width:960px">
+            <canvas id="chart-dynamic-chartjs"></canvas>
+        </div>
+    </div>
+
+    <h3>&nbsp;</h3>
+    <div class="pull-left mr10" id="maintext-symbol-logo"></div>
+    <p class="pl10">
+        {{symbol_desc.security}} (<b>{{symbol_desc.symbol}}</b>
+        <kbd>
+            <span id="maintext-symbol-close">{{symbol_desc.l_close}}</span>
+            <span id="maintext-symbol-chp" class="{%if symbol_desc.l_dp >= 0%}scg{%else%}scr{%endif%}">
+            {%if symbol_desc.l_dp >= 0%}+{%endif%}{{symbol_desc.l_dp}}%
+            </span>
+        </kbd>
+        ) is a {{symbol_desc.subsec|lower}} provider, headquartered in {{symbol_desc.hq}}.
+        <u>During the past <b>{{d}}</b> days</u>, the stock price {%if symbol_desc.c_diff < 0%}decreased{%else%}increased{%endif%}
+        <kbd class="{%if symbol_desc.c_diff >= 0%}scg{%else%}scr{%endif%}">{{symbol_desc.c_diff}}%</kbd>
+        and the performance was ranked <kbd class="bg-info mb-1">{{symbol_desc.pr}}</kbd>.
+    </p>
+    <div class="pull-right col-12 col-sm-6 col-md-4 col-lg-3 m-2">
+        <div class="card bg-info text-white">
+            <div class="card-body" style="text-align:center">
+                <h1>{{symbol_desc.pr}}</h1>
+                <h6>in the past <b>{{d}}</b> days {% include "ranking_exp.html" with verbiage="1" %}</h6>
+            </div>
+        </div>
+    </div>
+    <p>The market cap for <b>{{symbol_desc.symbol}}</b> is <kbd id="maintext-symbol-cap"></kbd>. It has the price to EPS ratio of <kbd id="maintext-symbol-pe"></kbd>
+        and year-to-date change of <kbd id="maintext-symbol-ytd"></kbd>.
+    </p>
+
+    <div class="row mt50">&nbsp;</div>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>In the past</th>
+                <th>Gain</th>
+                <th>Rank</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in symbol_terms %}
+            <tr class="cp" onclick="window.open('/be/{{ss}}/{{r.d}}/','_self')">
+                <td class="align-middle"><span class="btn btn-sm btn-primary">{{r.term}}</span></td>
+                <td class="align-middle"><kbd class="{%if r.dp < 0%}scr{%else%}scg{%endif%}">{{r.dp}}%</kbd></td>
+                <td class="align-middle"><span class="btn btn-sm btn-info">{{r.rn}}</span></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <p>The Fame66 score summarizing the recent performance of <b>{{ss}}</b> is
+        <span class="btn btn-sm btn-{%if symbol_smry.rn < 61%}success{%elif symbol_smry.rn < 181 %}warning{%else%}danger{%endif%} cd">
+        {{symbol_smry.summary_score}} {% include "explain_fame66.html" with symbol=ss %}</span>
+        That ranks <b>{{symbol_smry.rn|ordinal}}</b> among SP500.
+    </p>
+
+    <h3>&nbsp;</h3>
+    <div class="input-group col-xl-3 col-lg-4 col-md-6 col-sm-8 col-12 row">
+        <input type='text' class="form-control typeahead" autocomplete="off" name="ss1" id="input-ss1" data-provide="typeahead" placeholder="Other SP500 Stock" onfocus="this.setSelectionRange(0, this.value.length)"/>
+        <span class="input-group-btn">
+            <button type="button" class="btn btn-primary" onclick="openSS(1);">Go</button>
+        </span>
+    </div>
+    <h3>&nbsp;</h3>
+
+    <h5>&nbsp;</h5>
+    <h5>Best time to own <b>{{ss}}</b> shares</h5>
+    <h5>&nbsp;</h5>
+    <div class="table-responsive">
+    <table class="table table-hover" style="padding-bottom:100px">
+        <thead>
+            <tr>
+                <th class="nw">In the past</th>
+                <th>Best period to own <b>{{ss}}</b></th>
+                <th>Rank</th>
+                <th>Best stocks then</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in best_terms %}
+            <tr>
+                <td class="align-middle nw">{{r.base_val}} {%if r.base_unit == 'm'%}month{%else%}year{%endif%}{%if r.base_val > 1%}s{%endif%}</td>
+                <td class="align-middle nw"> between
+                    {%if r.best_unit == 'm'%}<i>{%if r.same_year%}{{r.start|date:"F"}}{%else%}{{r.start|date:"F Y"}}{%endif%}</i> and <i>{{r.end|date:"F Y"}}</i>{%else%}
+                    <i>{%if r.same_year%}{{r.start|date:"N d"}}{%else%}{{r.start|date:"N d, Y"}}{%endif%}</i> and <i>{{r.end|date:"N d, Y"}}</i>{%endif%}
+                </td>
+                <td class="align-middle"><span class="btn btn-sm btn-info cd">{{r.pr}}</span></td>
+                <td class="align-middle nw">
+                    <a class="btn btn-sm btn-primary" href="{{r.url_range}}">Past {{r.base_val}}
+                        {%if r.base_unit == 'm'%}month{%else%}year{%endif%}{%if r.base_val > 1%}s{%endif%}
+                        <i class="fa fa-angle-double-right" aria-hidden="true"></i>
+                    </a>
+                    <a class="btn btn-sm btn-primary" href="{{r.url}}"> Between
+                        {%if r.best_unit == 'm'%}{{r.start|date:"m/Y"}} and {{r.end|date:"m/Y"}}
+                        {%else%}{{r.start|date:"m/d/Y"}} and {{r.end|date:"m/d/Y"}}{%endif%}
+                        <i class="fa fa-angle-double-right" aria-hidden="true"></i>
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    
+    <h1>&nbsp;</h1>
+    <div class="list-group" id="maintext-news">
+    </div>
+
+    <h1>&nbsp;</h1>
+    <div class="table-responsive">
+        <div id="sline" style="height:300px;width:90%;min-width:640px">
+            <svg></svg>
+        </div>
+    </div>
+    <h1>&nbsp;</h1>
+
+    <div class="input-group col-xl-3 col-lg-4 col-md-6 col-sm-8 col-12 row">
+        <input type='text' class="form-control typeahead" autocomplete="off" name="ss2" id="input-ss2" data-provide="typeahead" placeholder="SP500 SYMBOL" onfocus="this.setSelectionRange(0, this.value.length)"/>
+        <span class="input-group-btn">
+            <button type="button" class="btn btn-primary" onclick="openSS(2);">Go</button>
+        </span>
+    </div>
+
+
+    <h1>&nbsp;</h1>
+    {% include "footer.html" %}
+<script>
+nv.addGraph(function() {
+    var chart = nv.models.linePlusBarChart()
+      .margin({top: 30, right: 60, bottom: 50, left: 70})
+      .color(d3.scale.category10().range())
+      .legendRightAxisHint("").legendLeftAxisHint("")
+      ;
+
+    chart.xAxis
+      .showMaxMin(false)
+      .tickFormat(function(d){return d3.time.format('%m/%d/%Y')(new Date(d+new Date().getTimezoneOffset()*60000))});
+    chart.x2Axis
+      .showMaxMin(false)
+      .tickFormat(function(d){return d3.time.format('%m/%d/%Y')(new Date(d+new Date().getTimezoneOffset()*60000))});
+
+    chart.y1Axis.tickFormat(d3.format(',f'));
+    chart.y2Axis.tickFormat(function(d) { return '$' + d3.format('.2f')(d) });
+    chart.bars.forceY([0]);
+
+    d3.select('#sline svg')
+      .datum(data_sline)
+      .transition().duration(500)
+      .call(chart)
+      ;
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+});
+
+var data_sline = [
+	{
+		key:'Volume',
+		bar: true,
+		values:[{% for p in symbol_line %}
+			{x:{{p.close_date|floatformat:"0"}} , y:{{p.volume}} },
+		{% endfor %}]
+	},
+	{
+		key:'Close',
+		values:[{% for p in symbol_line %}
+			{x:{{p.close_date|floatformat:"0"}} , y:{{p.close}} },
+		{% endfor %}]
+	},
+	{
+		key:'High',
+		values:[{% for p in symbol_line %}
+			{x:{{p.close_date|floatformat:"0"}} , y:{{p.high}} },
+		{% endfor %}]
+	},
+	{
+		key:'Low',
+		values:[{% for p in symbol_line %}
+			{x:{{p.close_date|floatformat:"0"}} , y:{{p.low}} },
+		{% endfor %}]
+	},
+];
+
+var numbers = new Bloodhound({
+    datumTokenizer: Bloodhound.tokenizers.whitespace,
+    queryTokenizer: Bloodhound.tokenizers.whitespace,
+    local:  [{%for s in SP500%}"{{s}}",{%endfor%}]
+});
+numbers.initialize();
+$(".typeahead").typeahead({
+    items: 9,
+    source:numbers.ttAdapter()
+});
+</script>
+</div>
+
+{% endblock body %}

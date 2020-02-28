@@ -1,0 +1,26 @@
+        function modWatch2(ss, ssid) {
+            var action;
+            if ( $('#btn-w-'+ssid).html() == 'drop' ) {
+                action = "drop";
+            } else {
+                action = "add";
+            }
+            $.ajax({
+                url: "/watch/"+action+"/"+ss+"/",
+                type: "POST",
+                data: {"csrfmiddlewaretoken": "{{csrf_token}}", "view": "recent_quotes"},
+                success: function(data) {
+                	if (data.message == "Succeeded") {
+                        if (action == "add") {
+                            $('#btn-w-'+ssid).html('drop');
+                            $('#btn-w-'+ssid).parent().removeClass("btn-secondary");
+                            $('#btn-w-'+ssid).parent().addClass("btn-light");
+                        } else {
+                            $('#btn-w-'+ssid).html('add');
+                            $('#btn-w-'+ssid).parent().addClass("btn-secondary");
+                            $('#btn-w-'+ssid).parent().removeClass("btn-light");
+                        }
+                	}
+                }
+            });
+        }

@@ -1,0 +1,17 @@
+<div class="sticky-top">
+    <div class="float-right bg-secondary rounded p-1 m-1">
+        <div class="btn-group mx-2">
+            <a {%if request.resolver_match.url_name == 'my_watch_quotes' %}class="btn btn-sm btn-dark active" aria-pressed="true"{%else%}class="btn btn-sm btn-outline-dark" href="/my/watch/quotes/"{%endif%}><i class="fa fa-fw fa-lg fa-eye"></i> <span class="d-none d-md-inline-block">Watching</span></a>
+            <a {%if request.resolver_match.url_name == 'my_recent_quotes' %}class="btn btn-sm btn-dark active" aria-pressed="true"{%else%}class="btn btn-sm btn-outline-dark" href="/my/recent/quotes/"{%endif%}><i class="fa fa-fw fa-lg fa-history"></i> <span class="d-none d-md-inline-block">Recent</span></a>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-warning alert-dismissable mt50">
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+        {{message|safe}}
+    </div>
+    {% endfor %}
+{% endif %}

@@ -1,0 +1,5 @@
+1. declare environment
+   ZOHOPASSWORD
+2. Letsencrypt prepare
+   Check nginx/https/letsencrypt.txt
+3. use docker-compose build

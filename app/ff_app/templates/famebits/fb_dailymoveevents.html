@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ss}} DailyMoves - FameBits{% endblock %}
+{% block mdesc %}Daily moves on {{ss}}. Including ceiling-, floor-breaking, or moving average beating.{% endblock %}
+{% block ogtitle %}{{ss}} DailyMoves - distilled knowledge from data{% endblock %}
+{% block ogdesc %}Daily moves on {{ss}}. Including ceiling-, floor-breaking, or moving average beating.{% endblock %}
+{% block ogimage %}https://storage.googleapis.com/iex/api/logos/{{ss}}.png{% endblock %}
+
+{% block header %}
+<script>
+    {% if ss %}
+    $(document).ready(function(){
+        $.getJSON('{{api_url}}', function(d) {
+            var a = ''
+            for (i in d.bits) {
+                var t = '';
+                t = t + '<td class="align-middle nw">' + d.bits[i].close_date + '</td>';
+                t = t + '<td class="align-middle d-none d-sm-table-cell">' + d.bits[i].close + '</td>';
+                t = t + '<td class="align-middle"><span class="text-'+(d.bits[i].chp<0?'danger':'success')+'">' + (d.bits[i].chp<0?'':'+') + d.bits[i].chp + '% </span></td>';
+                t = t + '<td class="align-middle">';
+                for (j in d.bits[i].events) {
+                    t = t + '<a class="badge badge-'+d.bits[i].events[j].color+' m-1 text-dark"'+(d.bits[i].events[j].url?' href="'+d.bits[i].events[j].url+'"':'')+'>'+d.bits[i].events[j].content+(d.bits[i].events[j].url?'<i class="fa fa-angle-double-right"></i>':'')+'</a>';
+                }
+                t = t + '</td>';
+                a = a +'<tr>' + t + '</tr>';
+            }
+            $("#maintext-insights").html(a);
+        });
+        $('[data-toggle="tooltip"]').tooltip(); 
+    });
+    {% endif %}
+</script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container mt50 mb50">
+    <h2>
+        FameBits: DailyMoves
+    </h2>
+    {% if ss %}
+    <p>On {{ss}} {{desc}}</p>
+    {% endif %}
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+    
+    {% if ss %}
+    <div class="mt-4">
+    {% for f in DME_SCOPES %}
+        <a class="btn btn-sm m-1 {%if f.scope == scope%}btn-outline-secondary disabled{%else%}btn-secondary{%endif%}{%if forloop.counter > 8%} d-none d-xl-inline-block{%elif forloop.counter > 4%} d-none d-md-inline-block{%endif%}" href="/fb/dme/{{ss}}/{{f.scope}}/" data-toggle="tooltip" data-placement="bottom" title="{{f.desc}}">{{f.name}}</a>
+    {% endfor %}
+    </div>
+
+    {% include "snippets/logo_symbol_change.html" with ss=ss %}
+    {% include "snippets/watch_button.html" with watching=watching user=user request=request ss=ss csrf_token=csrf_token %}
+    <div class="table-responsive">
+    <table class="table table-hover mt-3">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th class="d-none d-sm-table-cell">Close</th>
+                <th>Change</th>
+                <th>Moves</th>
+            </tr>
+        </thead>
+        <tbody id="maintext-insights">
+        </tbody>
+    </table>
+    </div>
+
+    <div class="my-3 py-3">
+        <a class="btn btn-sm btn-secondary m-1" href="/fb/cfp/{{ss}}/">Tell me in human language <i class="fa fa-angle-double-right"></i></a>
+        {% include "snippets/other_button.html" with ob=ob %}
+    </div>
+    <div class="my-3 py-3">
+        <p class="m-1">Not enough? We are working hard to get you more. Stay tuned.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock body %}

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block title %}FolioFame{% endblock %}
+{% block ogtitle %}Rank any major stock{% endblock %}
+{% block ogdesc %}Find the top stocks based on their recent performance, led by {{symbol_list.0.symbol}}.{% endblock %}
+
+{% block header %}
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css">
+        <link rel="stylesheet" href="{% static 'css/bs4-toggle.css' %}">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script src="//twitter.github.io/typeahead.js/releases/latest/typeahead.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
+        <script src="{% static 'js/js_int_to_str.js' %}"></script>
+        <script src="{% static 'js/js_getIEXbatchQNL.js' %}?v2"></script>
+        <script src="{% static 'js/js_getFame66Blocks.js' %}?v3"></script>
+        <script src="{% static 'js/js_getEventList_short.js' %}?v4"></script>
+        <script src="{% static 'js/js_watch_toggle.js' %}?v3"></script>
+        <script>
+        var slist = [{%for r in symbol_list %}'{{r.symbol}}'{%if not forloop.last%},{%endif%}{% endfor %}];
+        $(document).ready(function(){
+            for (s in slist) {
+                getLogo(slist[s]);
+                if (slist.length <= 100) {
+                    getF66Blocks(slist[s]);
+                    getEventList(slist[s]);
+                }
+            };
+            getQN(slist.join(), 1);
+            getSocket(slist.join());
+            $('[data-toggle="tooltip"]').tooltip(); 
+        });
+        </script>
+{% endblock header %}
+
+{% block body %}
+{% include "my/my_header.html" %}
+<div class="container my-5">
+    {% if default_list %}
+    <h4>Some popular stocks</h4>
+    {% else %}
+    <h4>{%if request.resolver_match.url_name == 'my_watch_quotes' %}Watching{%else%}Recently viewed{%endif%}</h4>
+    {% endif %}
+    <div class="my-3">
+        {% for r in symbol_list %}
+        <div class="row hvr3 bg-dark rounded my-2 py-3 pr-0">
+            <div class="col-5 col-md-4 row align-items-center">
+                <div class="col-12 col-lg-8">
+                    <a class="my-1 btn btn-sm btn-outline-secondary btn-block" href="/fh/{{r.symbol}}/" target="_blank">{{r.symbol}}</a>
+                    <span class="my-1 btn btn-sm btn-outline-secondary btn-block {%if r.watching > 0%}d-none{%endif%}" id="btn-{{r.sym_id}}-add" onclick="toggleWatch('{{r.symbol}}','add','btn-{{r.sym_id}}-add','btn-{{r.sym_id}}-drop','{{csrf_token}}',true);">add <i class="fa fa-eye"></i></span>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <span class="align-middle cp" id="maintext-{{r.sym_id}}-logo" onclick="window.open('/fh/{{r.symbol}}/');"></span>
+                </div>
+            </div>
+            <div class="col-7 col-md-8 row pr-0 justify-content-end">
+                <div class="d-inline-block">
+                    <span class="text-light cp {%if r.watching > 0%}d-none{%endif%}" id="w-{{r.sym_id}}-add" onclick="toggleWatch('{{r.symbol}}','add','w-{{r.sym_id}}-add','w-{{r.sym_id}}-drop','{{csrf_token}}',true);"><i class="fa fa-eye"></i></span>
+                    <span class="text-warning cp {%if r.watching == 0%}d-none{%endif%}" id="w-{{r.sym_id}}-drop" onclick="toggleWatch('{{r.symbol}}','drop','w-{{r.sym_id}}-add','w-{{r.sym_id}}-drop','{{csrf_token}}',true);"><i class="fa fa-eye"></i></span>
+                </div>
+                <span id="maintext-{{r.sym_id}}-name" class="col-12 d-none d-sm-block"></span>
+                <span id="maintext-{{r.sym_id}}-f66" class="col-12 col-sm-6 col-lg-3"></span>
+                <span class="col-12 col-sm-6 col-lg-5 nw pt-1 px-lg-3">
+                    <small>
+                        <span class="mr-1 pr-md-3" id="maintext-{{r.sym_id}}-chp"></span>
+                        <span class="mr-1 pr-md-3" id="maintext-{{r.sym_id}}-close"></span>
+                        <span><sup>YTD</sup><span id="maintext-{{r.sym_id}}-ytd"></span></span>
+                    </small>
+                </span>
+                <span class="col-12 col-md-6 col-lg-4 nw pt-1 px-lg-3  d-none d-lg-inline-block">
+                    <small>
+                        <span class="mr-1 pr-md-3"><sup>MarketCap</sup><span id="maintext-{{r.sym_id}}-cap"></span><sub id="maintext-{{r.sym_id}}-capchp"></sub></span>
+                        <span><sup>PE</sup><span id="maintext-{{r.sym_id}}-pe"></span></span>
+                    </small>
+                </span>
+                <span class="col-12 col-md-6 col-lg-4 nw pt-1 d-none d-lg-inline-block">
+                    <small>
+                        <span><sup>52-week</sup> <span id="maintext-{{r.sym_id}}-w52"></span></span>
+                    </small>
+                </span>
+                <span class="col-12 col-lg-8"><span id="maintext-{{r.sym_id}}-event"></span><span id="maintext-{{r.sym_id}}-ahead"></span></span>
+            </div>
+            <div id="news-{{r.sym_id}}" class="col-12 my-1"></div>
+        </div>
+        {% endfor %}
+    </div>
+    <h1>&nbsp;</h1>
+    {% include "snippets/typeahead_symbol_input.html" %}
+    <h1>&nbsp;</h1>
+</div>
+
+<script></script>
+
+{% endblock body %}

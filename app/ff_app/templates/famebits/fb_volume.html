@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ss}} Volume - FameBits{% endblock %}
+{% block mdesc %}Trading volume insights for {{ss}}{% endblock %}
+{% block ogtitle %}{{ss}} Volume - distilled knowledge from data{% endblock %}
+{% block ogdesc %}Trading volume insights for {{ss}}{% endblock %}
+{% block ogimage %}https://storage.googleapis.com/iex/api/logos/{{ss}}.png{% endblock %}
+
+{% block header %}
+<script>
+    {% if ss %}
+    $(document).ready(function(){
+        $.getJSON('/api/v1/famebits/vol/{{ss}}/10/', function(d) {
+            var t = '';
+            for (i in d.bits) {
+                t = t + '<div class="list-group-item bg-dark text-light"><i class="fa fa-asterisk"></i> '+d.bits[i]+'</div>';
+            }
+            $("#maintext-insights").html(t);
+        });
+    });
+    {% endif %}
+</script>
+{% endblock header %}
+
+
+{% block body %}
+<div class="container mt50 mb50">
+    <h2>
+        FameBits: Volume
+    </h2>
+    <p>Sharable insights on trading volumes</p>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+    {% if ss %}
+    {% include "snippets/logo_symbol_change.html" with ss=ss %}
+    {% include "snippets/watch_button.html" with watching=watching user=user request=request ss=ss csrf_token=csrf_token %}
+    <div class="list-group list-group-flush my-3" id="maintext-insights"></div>
+
+    <div class="my-3">
+        {% include "snippets/other_button.html" with ob=ob %}
+    </div>
+    {% endif %}
+</div>
+{% endblock body %}

@@ -1,0 +1,50 @@
+{% extends 'accounts/base_login.html' %}
+{% load i18n %}
+{% load staticfiles %}
+<!-- templates/registration/login.html -->
+
+{% block title %}Login - FolioFame{% endblock %}
+
+{% block body_login %}
+                <div class="form-body col-9 col-md-6 col-lg-4 rounded my-2">
+                    <ul class="nav nav-tabs "> <!--class tag final-login-->
+                        <li>Sign In</li>
+                    </ul>
+                    <div class="tab-content">
+                        <div id="sectionA" class="tab-pane fade show active">
+                            <div class="innter-form">
+                                <form method="post" class="form-signin">
+                                    {% csrf_token %}
+                                    <label for="id_username" class="sr-only">Username:</label> <input type="text" name="username" autofocus maxlength="254" required id="id_username" class="form-control" placeholder="Username / Email address" />
+                                    <label for="id_password" class="sr-only">Password:</label> <input type="password" name="password" required id="id_password" class="form-control" placeholder="Password"/>
+                                    <button class="btn btn-primary btn-block" type="submit">Login</button>
+                                    <p class="mt10"><a href="{% url 'password_reset' %}" class="text-secondary">Lost password?</a></p>
+                                    
+                                </form>
+                                <form action="{% url 'social:begin' 'google-oauth2' %}">
+                                      <button type="submit" class="btn btn-block btn-google mt-3"><i class="fab fa-google fa-lg mr-2"></i>Sign in with Google</button>
+                                </form>
+                                <a href="{% url 'registration_register' %}" class="btn btn-block btn-primary mt-5 mb-3">Register account</a>
+                            </div>
+                            <!-- 
+                            <div class="social-login">
+                                <p>- - - - - - - - - - - - - Sign In With - - - - - - - - - - - - - </p>
+                                <ul>
+                                    <li>
+                                    <form action="{% url 'social:begin' 'facebook' %}">
+                                        <button type="submit" class="btn-block btn-facebook w-100 p-2 nw"><i class="fa fa-facebook"></i>Facebook</button>
+                                    </form>
+                                    </li>
+                                    <li>
+                                        <form action="{% url 'social:begin' 'google-oauth2' %}">
+                                            <button type="submit" class="btn-block btn-google w-100 p-2 nw"><i class="fa fa-google-plus"></i>Google+</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                             -->
+                            <div class="clearfix"></div>
+                        </div>
+                    </div>
+                </div>
+{% endblock body_login %}

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+<!-- templates/registration/login.html -->
+
+{% block body %}
+
+    <div class="container col-9 col-md-3 mt50">
+
+      <!--<form class="form-signin">
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <label for="inputEmail" class="sr-only">Email address</label>
+        <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
+        <label for="inputPassword" class="sr-only">Password</label>
+        <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" value="remember-me"> Remember me
+          </label>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+      </form>-->
+    <form method="post" class="form-signin">
+        <img class="mb-4" src="{% static 'img/favicon_b.png' %}" alt="" width="72" height="72">
+        <h2 class="form-signin-heading">Please sign in</h2>
+        {% csrf_token %}
+        <label for="id_username" class="sr-only">Username:</label> <input type="text" name="username" autofocus maxlength="254" required id="id_username" class="form-control"
+            placeholder="UserName/Email address" />
+        <label for="id_password" class="sr-only">Password:</label> <input type="password" name="password" required id="id_password" class="form-control"
+            placeholder="Password"/>
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Login</button>
+        <p class="mt10"><a href="{% url 'password_reset' %}">Lost password?</a></p>
+    </form>
+    <form class="form-signin mt30" action="{% url 'social:begin' 'facebook' %}">
+        <input class="btn btn-lg btn-success btn-block" type="submit" value="Login with Facebook" />
+    </form>
+    </div> <!-- /container -->
+
+    {# Assumes you setup the password_reset view in your URLconf #}
+
+
+
+
+{% endblock %}

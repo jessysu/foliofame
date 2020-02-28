@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block title %}FameList by FolioFame{% endblock %}
+{% block mdesc %}List of best performing stocks {%if d == 0%}recently{%else%}in the past {{term}}{%endif%}{% endblock %}
+{% block ogtitle %}List of best performing stocks {%if d == 0%}recently{%else%}in the past {{term}}{%endif%}{% endblock %}
+{% block ogdesc %}Quick glance on the top performers. Intelligent monitoring if logged in. Free for everyone.{% endblock %}
+
+{% block header %}
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script src="//twitter.github.io/typeahead.js/releases/latest/typeahead.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+        <script src="{% static 'js/js_int_to_str.js' %}"></script>
+        <script src="{% static 'js/js_getIEXNews.js' %}"></script>
+        <script src="{% static 'js/js_getFame66.js' %}"></script>
+        <script src="{% static 'js/js_getEventList.js' %}"></script>
+        <script>
+        function openSS() {
+            var ss = $("#input-ss").val();
+            if (ss.length<6) {
+                window.open("/fh/"+ss+"/", "_self");
+            }
+        }
+        function clickNews(ss) {
+            $('#shwnews-'+ss).collapse('toggle');
+            $('#btn-news-'+ss).html(function(i,old){return old=='<i class="fa fa-angle-down"></i>' ? '<i class="fa fa-angle-up"></i>' : '<i class="fa fa-angle-down"></i>';});
+        }
+        var etnow  = moment(new Date()).tz("America/Toronto");
+        var ethm = etnow.format("HHmm");
+        var Sclose = {};
+        var SCP = {};
+        var SYearBegin = {};
+        function getQ(symbol, sym_id){
+          $.getJSON('https://api.iextrading.com/1.0/stock/'+symbol+'/quote', function(data) {
+            var t="";
+            if (data.changePercent>=0) {t="+"};
+            $("#maintext-"+sym_id+"-close").text("$"+(data.close).toFixed(2));
+            $("#maintext-"+sym_id+"-chp").attr("class", ((data.changePercent<0) ? "scr":"scg"));
+            $("#maintext-"+sym_id+"-chp").text(t+Math.round(data.changePercent*10000)/100+'%');
+            $("#maintext-"+sym_id+"-ytd").attr("class", ((data.ytdChange<0) ? "scr":"scg"));
+            $("#maintext-"+sym_id+"-ytd").text(((data.ytdChange<0) ? "":"+") + Math.round(data.ytdChange*10000)/100+'%');
+            Sclose[symbol] = data.previousClose;
+            SCP[symbol] = data.calculationPrice;
+            SYearBegin[symbol] = data.previousClose / (1 + data.ytdChange);
+          });
+        }
+        if ( etnow.isoWeekday() < 6 && ethm < "2030" && ethm > "0830") {
+            console.log("Start socket");
+            var socket = io.connect('https://ws-api.iextrading.com/1.0/tops');
+            socket.on('connect', function () {
+                socket.emit('subscribe', '{%for r in symbol_list %}{{r.symbol}}{%if not forloop.last%},{%endif%}{%endfor%}');
+                console.log('Connection! in socket on');
+            });
+            function logScreen(jn) {
+                var j = JSON.parse(jn);
+                var d = moment(new Date(j.lastUpdated)).tz("America/Toronto");
+                var dd = d.format("YYYY-MM-DD");
+                var hm = d.format("HHmm");
+                if (hm < "2030" && SCP[j.symbol] != "close" && j.lastSalePrice > 0) {
+                    var c = j.lastSalePrice;
+                    var b = Sclose[j.symbol];
+                    var s = "";
+                    var y = (j.lastSalePrice - SYearBegin[j.symbol]) / SYearBegin[j.symbol];
+                    $("#maintext-"+j.symbol.replace('.','-')+"-chp").addClass(c<b ? "scr":"scg");
+                    $("#maintext-"+j.symbol.replace('.','-')+"-chp").removeClass(c<b ? "scg":"scr");
+                    $("#maintext-"+j.symbol.replace('.','-')+"-chp").text((c<b ? "":"+") + Math.round((c-b)/b*10000)/100 + "%");
+                    $("#maintext-"+j.symbol.replace('.','-')+"-close").text("$"+c.toFixed(2));
+                    $("#maintext-"+j.symbol.replace('.','-')+"-ytd").addClass(y<0 ? "scr":"scg");
+                    $("#maintext-"+j.symbol.replace('.','-')+"-ytd").removeClass(y<0 ? "scg":"scr");
+                    $("#maintext-"+j.symbol.replace('.','-')+"-ytd").text((y<0 ? "":"+") + Math.round(y*10000)/100 + "%");
+                }
+            }
+            socket.on('message', logScreen);
+        }
+        </script>
+{% endblock header %}
+
+{% block body %}
+
+<div class="container mt50 mb50">
+    <h3>
+        <i class="fa fa-list-ol text-primary pr-1"></i> FameList :
+        {% if d == 0 %}
+        <i class="fa fa-quote-left text-primary px-1"></i> Overall
+        {% else %}
+        {{term}}
+        {% endif %}
+    </h3>
+    <p>Best performers {%if d == 0%}across various times{%else%}in the past {{term}}{%endif%}</p>
+
+    <span class="d-none d-md-inline-block">Or in the past</span>
+    {% for t in terms %}<a class="btn btn-sm m-1 btn{%if t.term == term%}-outline{%endif%}-primary" href="/fl/{{t.d}}/">{{t.short}}</a>{%endfor%}
+    <a class="btn btn-sm btn{%if d == 0%}-outline{%endif%}-primary" href="/fl/"><i class="fa fa-quote-left fa-lg"></i>&nbsp;<span class="d-none d-md-inline-block">Overall</span></a>
+
+    {% include "snippets/message_collapsable.html" with messages=messages %}
+
+    <div class="table-responsive mt-3">
+    <table class="table table-hover">
+        <thead class="thead-light">
+            <tr>
+                <th style="text-align:center">Symbol</th>
+                <th style="text-align:center">Latest Quotes</th>
+                <th style="text-align:center">Fame66{% include "explain_fame66.html" with symbol=symbol_list.0.symbol %}</th>
+                <th><span class="d-none d-md-inline-block">Security</span></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in symbol_list %}
+            <tr class="shw-{{r.bid}}{%if r.bid > 0%} collapse{%endif%}">
+                <td class="align-middle" style="width:15vw;max-width:120px">
+                    <span class="col-12 col-lg-6 float-left p-1 pr-0"><span class="btn btn-sm btn-block">#{{r.rn|floatformat:"0"}}</span></span>
+                    <span class="col-12 col-lg-6 float-left p-1 pr-0"><a class="btn btn-sm btn-primary btn-block" href="/fh/{{r.symbol}}/" target="_blank">{{r.symbol}}</a></span>
+                    {%if d == 0%}
+                    <span class="col-12 float-left p-1 pr-0"><a class="btn btn-sm btn-block" href="/fh/{{r.symbol}}/" target="_blank">{{r.summary_score}}</a></span>
+                    {%else%}
+                    <span class="col-12 float-left p-1 pr-0"><a class="btn btn-sm btn-dark btn-block {%if r.dp < 0%}scr{%else%}scg{%endif%}" href="/fh/{{r.symbol}}/" target="_blank">{%if r.dp > 0%}+{%endif%}{{r.dp}}%</a></span>
+                    {%endif%}
+                </td>
+                <td class="align-middle bg-dark">
+                    <h5 class="m-auto">
+                    <span class="badge badge-dark"><span id="maintext-{{r.sym_id}}-chp"></span></span>
+                    <span class="badge badge-dark text-warning"><span id="maintext-{{r.sym_id}}-close"></span></span> 
+                    <span class="badge badge-dark">YTD <span id="maintext-{{r.sym_id}}-ytd"></span></span>
+                    <span id="maintext-{{r.sym_id}}-event"></span>
+                    </h5>
+                </td>
+                <td class="align-bottom" style="width:20vw;max-width:160px">
+                    <span class="p-1 col-12 col-lg-6 float-left" style="height:60px"><canvas id="chart-{{r.sym_id}}"></canvas></span>
+                    <span class="p-1 col-12 col-lg-6 btn btn-sm btn-light" onclick="clickNews('{{r.sym_id}}');">news <span id="badge-news-{{r.sym_id}}" class="badge badge-secondary"></span> <span id="btn-news-{{r.sym_id}}"><i class="fa fa-angle-down"></i></span></span>
+                </td>
+                <td class="align-middle"><span class="d-none d-md-inline-block">{{r.security}}</span></td>
+            </tr>
+            <tr id="shwnews-{{r.sym_id}}" class="collapse">
+                <td colspan="4" id="news-{{r.sym_id}}"></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <button class="btn btn-primary" onclick="tableMore();" id="btnMore">More</button>
+    <h1>&nbsp;</h1>
+
+    <h5>Not finding what you're looking for?</h5>
+    <div class="input-group col-xl-3 col-lg-4 col-md-6 col-sm-8 col-12 row mt-3">
+        <input type='text' class="form-control typeahead" autocomplete="off" name="ss" id="input-ss" data-provide="typeahead" placeholder="SP500 SYMBOL" onfocus="this.setSelectionRange(0, this.value.length)"/>
+        <span class="input-group-btn">
+            <button type="button" class="btn btn-primary" onclick="openSS();">Go</button>
+        </span>
+    </div>
+
+</div>
+
+<script>
+var numbers = new Bloodhound({
+    datumTokenizer: Bloodhound.tokenizers.whitespace,
+    queryTokenizer: Bloodhound.tokenizers.whitespace,
+    local:  [{%for s in SP500%}"{{s}}",{%endfor%}]
+});
+numbers.initialize();
+$(".typeahead").typeahead({
+    items: 9,
+    source:numbers.ttAdapter()
+});
+
+{% regroup symbol_list by bid as symbol_batch %}
+var curshow = -1;
+var symStr = { {%for b in symbol_batch%}{{b.grouper}}:"{%for r in b.list%}{{r.symbol}},{{r.sym_id}};{%endfor%}",{%endfor%} };
+function getChartNews_str(s) {
+    var p = s.split(";");
+    for (var i=0; i<p.length; i++){
+        if (p[i]) {
+            var ss = p[i].split(",");
+            //getFame66(ss[0],ss[1]);
+            getFame66(ss[1]);
+            getNews(ss[0],5);
+            getQ(ss[0], ss[1]);
+            getEventList(ss[0],90);
+        }
+    }
+}
+function tableMore() {
+    curshow = curshow + 1;
+    $(".shw-"+curshow).addClass("show");
+    getChartNews_str(symStr[curshow]);
+    if (curshow == {{max_bid}}) {
+        $("#btnMore").addClass("d-none");
+    }
+}
+tableMore();
+tableMore();
+</script>
+
+{% endblock body %}

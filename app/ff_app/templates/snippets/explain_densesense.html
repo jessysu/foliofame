@@ -1,0 +1,33 @@
+    <a class="cp" data-toggle="modal" data-target="#dsExp">
+        {%if verbiage == "1" %}<i class="fa fa-info-circle"></i>{%else%}(How the dense learners work?) <i class="fa fa-info-circle"></i>{%endif%}
+    </a>
+    <div class="modal fade" id="dsExp" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content" style="text-align:left">
+                <div class="modal-header">
+                    <h4 class="modal-title text-dark">Making Dense Sense</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body text-dark">
+                    <p>
+                        The dense learners pick up the target's closing price after a related article being published.
+                        They try to learn the price change since the publish day to 2 months later.
+                    </p>
+                    <p>
+                        An article may say good things about a stock, while the stock performs worse since the publish day.
+                        The learners were design to capture the relationship between an article and the near-future price of a stock.
+                    </p>
+                    <p>
+                        The learned "sense" from an article to a stock, or focus sense, is then being combined toward the stock.
+                        The combination also considers how each article influence all its related stock - to have room in model generalization.
+                    </p>
+                    <p>
+                        That makes the dense sense of a stock.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>

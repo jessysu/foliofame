@@ -1,0 +1,9 @@
+1. generate cert (first time)
+
+docker run -it --rm -v foliofameweb_certs:/etc/letsencrypt -v foliofameweb_certs-data:/data/letsencrypt deliverous/certbot certonly --webroot --webroot-path=/data/letsencrypt -d staging.foliofame.com
+
+
+2. renew cert
+docker run -t --rm -v foliofameweb_certs:/etc/letsencrypt -v foliofameweb_certs-data:/data/letsencrypt deliverous/certbot renew --webroot --webroot-path=/data/letsencrypt
+
+docker-compose kill -s HUP nginx

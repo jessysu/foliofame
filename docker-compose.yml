@@ -1,0 +1,133 @@
+version: "3"
+
+services:
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
+      - ./app:/data/web
+      - ./nginx/config/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginxlog:/data/nginxlog
+      - ./app/ff_app/templates:/etc/nginx/html
+      - certs:/etc/letsencrypt
+      - certs-data:/data/letsencrypt
+    links:
+      - web:web
+    networks:
+      back-tier:
+        ipv4_address: 172.22.0.100
+      front-tier:
+  web:
+    restart: always
+    build: ./app
+    expose:
+      - "8000"
+#    ports:
+#      - "80:80"
+    links:
+      - db:db
+      - redis:redis
+      - mongodb:mongodb
+    depends_on:
+      - db
+      - redis
+      - mongodb
+    environment:
+     - ZOHOPASSWORD=${ZOHOPASSWORD}
+    networks:
+     - back-tier
+    volumes:
+      - ./app:/data/web
+      - ./weblog:/data/weblog
+    command: bash -c "python3 manage.py makemigrations && python3 manage.py makemigrations ff_logging && python3 manage.py makemigrations ff_user && python3 manage.py migrate && gunicorn ff_dive.wsgi:application -w 2 -b :8000 --access-logfile /var/log/web.log"
+  crawler:
+    build: ./crawler/dockers/stockcrawler
+#    command: python3 -u ff_scripts/get_stock_adj.py
+#    command: python3 -u ff_scripts/backsql.py
+    command: cron  && tail -f /var/log/cron.log
+    container_name: stockcrawler
+    extra_hosts:
+     - "staging.foliofame.com:172.22.0.100"
+     - "foliofame.com:172.22.0.100"
+    volumes:
+     - ./crawler:/app
+     - ./backup:/backup_mysql
+     - ./crawlerlog:/var/log
+     - ./app/ff_dive/settings.py:/django/settings.py
+    networks:
+     - back-tier
+    depends_on:
+      - db
+      - mongodb
+  newscrawler:
+    build: ./crawler/dockers/newscrawler
+#    command: python3 -u ff_scripts/get_stock_adj.py
+#    command: python3 -u ff_scripts/backsql.py
+    command: cron  && tail -f /var/log/cron.log
+    container_name: newscrawler
+    extra_hosts:
+     - "staging.foliofame.com:172.22.0.100"
+     - "foliofame.com:172.22.0.100"
+    volumes:
+     - ./crawler:/app
+     - ./backup:/backup_mysql
+     - ./crawlerlog:/var/log
+    networks:
+     - back-tier
+    depends_on:
+      - db
+      - mongodb
+  db:
+    image: mysql:5.7.21
+    container_name: db
+    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    volumes:
+      - "./testdb:/var/lib/mysql"
+#    ports:
+#      - "3306:3306"
+    expose:
+      - "3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: ff_dev
+    networks:
+      - back-tier
+  mongodb:
+    image: mongo:4.0.6
+    container_name: mongodb
+    volumes:
+      - "./mongodb:/data/db"
+#    ports:
+#      - "27017:27017"
+    expose:
+      - "27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: test
+    networks:
+      - back-tier
+  redis:
+    container_name: redis
+    restart: always
+    image: redis:latest
+    expose:
+      - "6379"
+    networks:
+      - back-tier
+
+volumes:
+    testdb:
+    certs:
+    certs-data:
+networks:
+  front-tier:
+  back-tier:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/16

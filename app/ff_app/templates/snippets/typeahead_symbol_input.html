@@ -1,0 +1,27 @@
+<div class="my-5 input-group col-xl-3 col-lg-4 col-md-6 col-sm-8 col-12 row">
+    <input type='text' class="form-control typeahead" autocomplete="off" name="ss" id="input-ss" data-provide="typeahead" placeholder="Stock Symbol" onfocus="this.setSelectionRange(0, this.value.length)"/>
+    <span class="input-group-btn">
+        <button type="button" class="btn btn-secondary" onclick="openSS();">Go</button>
+    </span>
+</div>
+
+<script>
+function openSS(n) {
+    var ss = $("#input-ss").val();
+    if (ss.length<6) {
+        window.open("/fh/"+ss+"/", "_blank");
+    }
+}
+$.getJSON('/api/v1/misc/nonsp/', function(d) {
+    var numbers = new Bloodhound({
+        datumTokenizer: Bloodhound.tokenizers.whitespace,
+        queryTokenizer: Bloodhound.tokenizers.whitespace,
+        local:  d.symbol_list
+    });
+    numbers.initialize();
+    $(".typeahead").typeahead({
+        items: 9,
+        source:numbers.ttAdapter()
+    });
+});
+</script>

@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block title %}FolioFame{% endblock %}
+{% block ogtitle %}Rank any major stock{% endblock %}
+{% block ogdesc %}Find the top stocks based on their recent performance, led by {{symbol_list.0.symbol}}.{% endblock %}
+
+{% block header %}
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script src="//twitter.github.io/typeahead.js/releases/latest/typeahead.bundle.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
+        <script src="{% static 'js/js_int_to_str.js' %}"></script>
+        <script src="{% static 'js/js_getIEXNews.js' %}"></script>
+        <script>
+        function openSS() {
+            var ss = $("#input-ss").val();
+            if (ss.length<6) {
+                window.open("/fh/"+ss+"/", "_self");
+            }
+        }
+        function clickNews(ss) {
+            $('#shwnews-'+ss).collapse('toggle');
+            $('#btn-news-'+ss).html(function(i,old){return old=='<i class="fa fa-angle-down"></i>' ? '<i class="fa fa-angle-up"></i>' : '<i class="fa fa-angle-down"></i>';});
+        }
+        {% include "snippets/js_modWatch2.html" with csrf_token=csrf_token %}
+        function getQ(symbol){
+          var sym_id = symbol.replace(".","-");
+          $.getJSON('https://api.iextrading.com/1.0/stock/'+symbol+'/stats', function(data) {
+            var t="";
+            if (data.changePercent>=0) {t="+"};
+            $("#maintext-"+sym_id+"-sym").text(data.companyName);
+            $("#maintext-"+sym_id+"-eps").text("$"+(data.latestEPS).toFixed(2));
+            $("#maintext-"+sym_id+"-epsdate").text(data.latestEPSDate);
+            $("#maintext-"+sym_id+"-pro").text("$"+intToString(data.grossProfit));
+            $("#maintext-"+sym_id+"-pm").text(data.profitMargin+"%");
+            $("#maintext-"+sym_id+"-cash").text("$"+intToString(data.cash));
+            $("#maintext-"+sym_id+"-debt").text("$"+intToString(data.debt));
+            $("#maintext-"+sym_id+"-rev").text("$"+intToString(data.revenue));
+            $("#maintext-"+sym_id+"-rpe").text("$"+intToString(data.revenuePerEmployee)+"/emp");
+            $("#maintext-"+sym_id+"-rps").text("$"+intToString(data.revenuePerShare)+"/sh");
+            $("#maintext-"+sym_id+"-inst").text((data.institutionPercent).toFixed(2)+"%");
+          });
+          $.getJSON('https://api.iextrading.com/1.0/stock/'+symbol+'/logo', function(data) {
+              $("#maintext-"+sym_id+"-logo").html('<img class="img-fluid img-thumbnail mx-auto d-block" style="max-height:10vh;" src="'+data.url+'" onerror="if (this.src!=\'/static/img/err.png\') this.src=\'/static/img/err.png\'"/>');
+          });
+        }
+        {% for r in symbol_list %}getQ("{{r.symbol}}");{% endfor %}
+        </script>
+{% endblock header %}
+
+{% block body %}
+{% include "my/my_header.html" %}
+
+<div class="container mt-3 pt-3" id="sscore">
+    <div class="table-responsive mt-3 pt-3">
+    <h4 class="py-2">Stats for {%if request.resolver_match.url_name == 'my_watch_stats' %}watched{%else%}recently viewed{%endif%} stocks</h4>
+    <table class="table table-hover">
+        <thead class="thead-light">
+            <tr>
+                <th>Symbol</th>
+                <th>Key Stats</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in symbol_list %}
+            <tr>
+                <td class="align-middle row align-items-center">
+                    <div class="col-12 col-md-7 col-lg-8">
+                        <span class="col-12 col-lg-6 float-left p-1"><a class="btn btn-sm btn-primary btn-block" href="/fh/{{r.symbol}}/" target="_blank">{{r.symbol}}</a></span>
+                        <span class="col-12 col-lg-6 float-left p-1"><span class="btn btn-sm btn-{%if r.watching > 0%}light{%else%}secondary{%endif%} btn-block" onclick="modWatch2('{{r.symbol}}','{{r.sym_id}}');"><span id="btn-w-{{r.sym_id}}">{%if r.watching > 0%}drop{%else%}add{%endif%}</span> <i class="fa fa-eye"></i></span></span>
+                        <span class="col-12 float-left p-1"><span class="btn btn-sm btn-light btn-block" onclick="clickNews('{{r.sym_id}}');">news <span id="badge-news-{{r.sym_id}}" class="badge badge-secondary"></span> <span id="btn-news-{{r.sym_id}}"><i class="fa fa-angle-down"></i></span></span></span>
+                    </div>
+                    <div class="col-12 col-md-5 col-lg-4">
+                        <span class="align-middle cp" id="maintext-{{r.sym_id}}-logo" onclick="window.open('/fh/{{r.symbol}}/');"></span>
+                    </div>
+                </td>
+                <td class="align-middle bg-dark">
+                    <h5>
+                        <span class="badge badge-dark" title="Earing Per Share">EPS <span class="text-warning"><span id="maintext-{{r.sym_id}}-eps"></span> (<span id="maintext-{{r.sym_id}}-epsdate"></span>)</span></span>
+                        <span class="badge badge-dark" title="Profit">Profit <span class="text-warning"><span id="maintext-{{r.sym_id}}-pro"></span> (margin <span class="text-warning" id="maintext-{{r.sym_id}}-pm"></span>)</span></span>
+                        <span class="badge badge-dark" title="Cash">Cash <span class="text-warning" id="maintext-{{r.sym_id}}-cash"></span></span>
+                        <span class="badge badge-dark" title="Debt">Debt <span class="text-warning" id="maintext-{{r.sym_id}}-debt"></span></span>
+                        <span class="badge badge-dark" title="Revenue">Revenue  <span class="text-warning"><span id="maintext-{{r.sym_id}}-rev"></span>, <span id="maintext-{{r.sym_id}}-rpe"></span>, <span id="maintext-{{r.sym_id}}-rps"></span></span></span>
+                        <span class="badge badge-dark" title="Instition Percent">Institution <span class="text-warning" id="maintext-{{r.sym_id}}-inst"></span></span>
+                    </h5>
+                    <h5>
+                        <span class="badge badge-info" id="maintext-{{r.sym_id}}-sym"></span>
+                    </h5>
+                </td>
+            </tr>
+            <tr id="shwnews-{{r.sym_id}}" class="collapse">
+                <td colspan="2" id="news-{{r.sym_id}}"></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <h1>&nbsp;</h1>
+
+    {% include "snippets/typeahead_symbol_input.html" %}
+
+    <h1>&nbsp;</h1>
+</div>
+
+<script>
+{%for s in symbol_list%}getNews("{{s.symbol}}");{%endfor%}
+</script>
+
+{% endblock body %}
